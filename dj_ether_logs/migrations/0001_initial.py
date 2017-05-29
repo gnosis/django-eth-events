@@ -21,10 +21,22 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created', model_utils.fields.AutoCreatedField(default=django.utils.timezone.now, editable=False, verbose_name='created')),
                 ('modified', model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, editable=False, verbose_name='modified')),
-                ('block_number', models.BigIntegerField(default=0)),
+                ('block_number', models.IntegerField(default=0)),
             ],
             options={
                 'abstract': False,
             },
+        ),
+        migrations.CreateModel(
+            name='Alert',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created', model_utils.fields.AutoCreatedField(default=django.utils.timezone.now, editable=False,
+                                                                verbose_name='created')),
+                ('modified', model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, editable=False,
+                                                                      verbose_name='modified')),
+                ('abi', models.TextField()),
+                ('contract', models.TextField(unique=True)),
+            ],
         ),
     ]
