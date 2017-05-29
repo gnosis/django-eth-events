@@ -4,11 +4,17 @@ from decoder import Decoder
 from json import loads
 from web3 import Web3, RPCProvider
 from django.conf import settings
+from django.apps import apps
 from celery.utils.log import get_task_logger
 
 
 logger = get_task_logger(__name__)
-AlertModel = getattr(settings, 'ALERT_MODEL', Alert)
+
+alert_model_app_name = getattr(settings, 'ALERT_MODEL_APP', 'dj_ether_logs')
+AlertModelAppConfig = apps.get_app_config(alert_model_app_name)
+
+alert_model_name = getattr(settings, 'ALERT_MODEL', 'Alert')
+AlertModel = AlertModelAppConfig.get_model(alert_model_name)
 
 
 class UnknownBlock(Exception):
@@ -27,7 +33,8 @@ class Bot(Singleton):
                 ssl=settings.ETHEREUM_NODE_SSL
             )
         )
-        self.callback = getattr(settings, 'CALLBACK_FUNCTION', None)
+        self.callback_per_block = getattr(settings, 'CALLBACK_PER_BLOCK', None)
+        self.callback_per_exec = getattr(settings, 'CALLBACK_PER_EXEC', None)
 
     def next_block(self):
         return Daemon.get_solo().block_number
@@ -127,5 +134,8 @@ class Bot(Singleton):
             # If decoded, filter correct logs and group by dapp and mail
             filtered = self.filter_logs(decoded, contracts)
 
-            if self.callback and callable(self.callback):
-                self.callback(filtered)
+            if self.callback_per_block and callable(self.callback_per_block):
+                self.callback_per_block(filtered)
+
+        if self.callback_per_exec and callable(self.callback_per_exec):
+            self.callback_per_exec()

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from django.test import TestCase
-from eth.decoder import Decoder
+from dj_ether_logs.decoder import Decoder
 from json import loads
 
 
