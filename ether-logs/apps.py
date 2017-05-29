@@ -3,5 +3,5 @@ from __future__ import unicode_literals
 from django.apps import AppConfig
 
 
-class EthConfig(AppConfig):
-    name = 'eth'
+class EtherLogsConfig(AppConfig):
+    name = 'ether-logs'

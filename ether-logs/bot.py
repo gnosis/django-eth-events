@@ -1,14 +1,14 @@
 from utils import Singleton
-from . import models
-from events.models import Alert
+from models import Alert, Daemon
 from decoder import Decoder
 from json import loads
-from web3 import Web3, HTTPProvider, RPCProvider
+from web3 import Web3, RPCProvider
 from django.conf import settings
-from eth.mail_batch import MailBatch
 from celery.utils.log import get_task_logger
 
+
 logger = get_task_logger(__name__)
+AlertModel = getattr(settings, 'ALERT_MODEL', Alert)
 
 
 class UnknownBlock(Exception):
@@ -27,13 +27,13 @@ class Bot(Singleton):
                 ssl=settings.ETHEREUM_NODE_SSL
             )
         )
-        self.batch = MailBatch()
+        self.callback = getattr(settings, 'CALLBACK_FUNCTION', None)
 
     def next_block(self):
-        return models.Daemon.get_solo().block_number
+        return Daemon.get_solo().block_number
 
     def update_block(self):
-        daemon = models.Daemon.get_solo()
+        daemon = Daemon.get_solo()
         current = self.web3.eth.blockNumber
         if daemon.block_number < current:
             blocks_to_update = range(daemon.block_number+1, current+1)
@@ -45,7 +45,7 @@ class Bot(Singleton):
             return []
 
     def load_abis(self, contracts):
-        alerts = Alert.objects.filter(contract__in=contracts)
+        alerts = AlertModel.objects.filter(contract__in=contracts)
         added = 0
         for alert in alerts:
             try:
@@ -68,7 +68,7 @@ class Bot(Singleton):
 
     def filter_logs(self, logs, contracts):
         # filter by contracts
-        all_alerts = Alert.objects.filter(contract__in=contracts).prefetch_related('events__event_values').prefetch_related('dapp')
+        all_alerts = AlertModel.objects.filter(contract__in=contracts).prefetch_related('events__event_values').prefetch_related('dapp')
         filtered = {}
         for log in logs:
             # get alerts for same log contract (can be many)
@@ -127,10 +127,5 @@ class Bot(Singleton):
             # If decoded, filter correct logs and group by dapp and mail
             filtered = self.filter_logs(decoded, contracts)
 
-            # add filtered logs to send mail
-            for mail, dapp_logs in filtered.iteritems():
-                self.batch.add_mail(mail, dapp_logs)
-
-        # if blocknumber is the same, do nothing
-        # Send mails in batch
-        self.batch.send_mail()
+            if self.callback and callable(self.callback):
+                self.callback(filtered)
