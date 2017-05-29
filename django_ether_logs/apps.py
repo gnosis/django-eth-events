@@ -4,4 +4,4 @@ from django.apps import AppConfig
 
 
 class EtherLogsConfig(AppConfig):
-    name = 'dj_ether_logs'
+    name = 'django_ether_logs'

@@ -1,5 +1,5 @@
 from utils import Singleton
-from models import Alert, Daemon
+from models import Daemon
 from decoder import Decoder
 from json import loads
 from web3 import Web3, RPCProvider
@@ -10,7 +10,7 @@ from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
 
-alert_model_app_name = getattr(settings, 'ALERT_MODEL_APP', 'dj_ether_logs')
+alert_model_app_name = getattr(settings, 'ALERT_MODEL_APP', 'django_ether_logs')
 AlertModelAppConfig = apps.get_app_config(alert_model_app_name)
 
 alert_model_name = getattr(settings, 'ALERT_MODEL', 'Alert')
