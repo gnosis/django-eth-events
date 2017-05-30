@@ -35,6 +35,7 @@ class Bot(Singleton):
         )
         self.callback_per_block = getattr(settings, 'CALLBACK_PER_BLOCK', None)
         self.callback_per_exec = getattr(settings, 'CALLBACK_PER_EXEC', None)
+        self.filter_logs = getattr(settings, 'LOG_FILTER_FUNCTION', None)
 
     def next_block(self):
         return Daemon.get_solo().block_number
@@ -73,52 +74,14 @@ class Bot(Singleton):
         else:
             raise UnknownBlock
 
-    def filter_logs(self, logs, contracts):
-        # filter by contracts
-        all_alerts = AlertModel.objects.filter(contract__in=contracts).prefetch_related('events__event_values').prefetch_related('dapp')
-        filtered = {}
-        for log in logs:
-            # get alerts for same log contract (can be many)
-            alerts = all_alerts.filter(contract=log[u'address'])
-
-            for alert in alerts:
-                # Get event names
-                events = alert.events.filter(name=log[u'name'])
-                if events.count():
-                    # Get event property, if event property, discard unmatched values
-                    add_event = True
-                    if events[0].event_values.count():
-                        # check that all parameters check in value or doesn't exist
-                        for event_value in events[0].event_values.iterator():
-                            for param in log[u'params']:
-                                if event_value.property == param[u'name']:
-                                    if event_value.value != param[u'value']:
-                                        add_event = False
-
-                    # add log
-                    if add_event:
-                        email = alert.dapp.user.email
-                        dapp_name = alert.dapp.name
-                        dapp_code = alert.dapp.authentication_code
-                        if not filtered.get(email):
-                            filtered[email] = {}
-                        if not filtered[email].get(dapp_name):
-                            # filtered[email][dapp_name] = []
-                            filtered[email][dapp_name] = dict(authentication_code=dapp_code, logs=[])
-
-                        # filtered[email][dapp_name].append(log)
-                        filtered[email][dapp_name].get('logs').append(log)
-
-        return filtered
-
     def execute(self):
-
         # update block number
         # get blocks and decode logs
         for block in self.update_block():
             logger.info("block {}".format(block))
             # first get un-decoded logs
             logs = self.get_logs(block)
+
             # get contract addresses
             contracts = []
             for log in logs:
@@ -132,10 +95,10 @@ class Bot(Singleton):
             decoded = self.decoder.decode_logs(logs)
 
             # If decoded, filter correct logs and group by dapp and mail
-            filtered = self.filter_logs(decoded, contracts)
+            filtered = self.filter_logs(decoded, contracts) if callable(self.filter_logs) else decoded
 
-            if self.callback_per_block and callable(self.callback_per_block):
+            if callable(self.callback_per_block):
                 self.callback_per_block(filtered)
 
-        if self.callback_per_exec and callable(self.callback_per_exec):
+        if callable(self.callback_per_exec):
             self.callback_per_exec()
