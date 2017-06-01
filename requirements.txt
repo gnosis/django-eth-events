@@ -1,3 +1,4 @@
+six
 bitcoin==1.1.42
 celery==3.1.25
 Django==1.10.5

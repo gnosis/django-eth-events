@@ -8,6 +8,7 @@ from solo.models import SingletonModel
 class Daemon(TimeStampedModel, SingletonModel):
     block_number = models.IntegerField(default=0)
 
+
 class Alert(TimeStampedModel):
     """
     Alert Class
