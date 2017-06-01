@@ -94,7 +94,7 @@ class Bot(Singleton):
             # decode logs
             decoded = self.decoder.decode_logs(logs)
 
-            # If decoded, filter correct logs and group by dapp and mail
+            # If decoded, filter correct logs
             filtered = self.filter_logs(decoded, contracts) if callable(self.filter_logs) else decoded
 
             if callable(self.callback_per_block):
