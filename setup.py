@@ -8,8 +8,8 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 requirements = [
     'six',
     'bitcoin==1.1.42',
-    'celery==3.1.25'
-    'Django==1.10.5',
+    'celery==3.1.25',
+    'django==1.10.5',
     'django-authtools==1.5.0',
     'django-celery==3.2.1',
     'django-model-utils==2.6.1',
@@ -26,6 +26,7 @@ setup(
     version='0.1',
     packages=find_packages(),
     include_package_data=True,
+    install_requires=requirements,
     # license='BSD License',  # example license
     description='A simple Django app to react to ethereum logs.',
     # long_description=README,
