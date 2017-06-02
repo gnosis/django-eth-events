@@ -2,6 +2,10 @@ from __future__ import unicode_literals
 
 from django.apps import AppConfig
 from django.conf import settings
+import sys
+
+from celery import Celery
+app = Celery('alerts')
 
 
 class EtherLogsConfig(AppConfig):
@@ -10,6 +14,8 @@ class EtherLogsConfig(AppConfig):
     def ready(self):
         super(EtherLogsConfig, self).ready()
         self.__load_config()
+        app.config_from_object('django.conf:settings')
+        app.autodiscover_tasks(lambda: settings.INSTALLED_APPS, force=True)
 
     def __load_config(self):
         """Loads the base config and merges it with the Django app configuration"""
