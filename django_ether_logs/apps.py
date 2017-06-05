@@ -5,11 +5,12 @@ from django.conf import settings
 import sys
 
 from celery import Celery
-app = Celery('alerts')
+app = Celery('django_ether_logs')
 
 
 class EtherLogsConfig(AppConfig):
     name = 'django_ether_logs'
+
 
     def ready(self):
         super(EtherLogsConfig, self).ready()
@@ -24,11 +25,11 @@ class EtherLogsConfig(AppConfig):
         default_config = {}
         # set default config values
         for var in variables:
-            if not hasattr(settings, var) and var == 'DJ_ADDITIONAL_APPS':
+            if not hasattr(settings, var) and var == 'ETHER_LOGS_ADDITIONAL_APPS':
                 inst_apps = getattr(settings, 'INSTALLED_APPS')
                 setattr(settings, 'INSTALLED_APPS', inst_apps + filez.__dict__[var])
             elif not hasattr(settings, var):
-                setattr(settings, var[3::], filez.__dict__[var])
+                setattr(settings, var[11::], filez.__dict__[var])
 
     def __load_file(self, import_name, silent=False):
         """Imports an object based on a string.  This is useful if you want to

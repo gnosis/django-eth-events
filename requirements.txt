@@ -11,3 +11,4 @@ ethereum-abi-utils==0.4.0
 ethereum-utils==0.2.0
 factory-boy==2.5.2
 web3==3.7.1
+kombu==3.0.37
