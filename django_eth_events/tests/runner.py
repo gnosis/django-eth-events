@@ -10,8 +10,7 @@ INSTALLED_APPS=(
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.admin',
-    'django_ether_logs',
-    'django_ether_logs.tests',
+    'django_ether_logs'
 )
 
 LOGGING={
@@ -43,37 +42,34 @@ ROOT_URLCONF = 'urls'
 
 
 def runtests(*test_args):
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_ether_logs.tests.runner')
-    django.setup()
-
     DIRNAME = os.path.dirname(__file__)
-
     parent = os.path.dirname(os.path.abspath(__file__))
     sys.path.insert(0, parent)
+    # os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_ether_logs.settings.base')
+    settings.configure(
+        DEBUG=True,
+        DATABASES=DATABASES,
+        INSTALLED_APPS=INSTALLED_APPS
+    )
 
-    if django.VERSION < (1, 8):
-        from django.test.simple import DjangoTestSuiteRunner
-        failures = DjangoTestSuiteRunner(
-            top_level=os.getcwd(),
-            verbosity=1,
-            interactive=True,
-            failfast=False
-        ).run_tests(['tests'])
+    # django.setup()
 
-        if failures:
-            sys.exit(failures)
+    """from django.test.runner import DiscoverRunner
+    failures = DiscoverRunner(
+        top_level=os.getcwd(),
+        verbosity=1,
+        interactive=True,
+        failfast=False
+    ).run_tests(test_args)
 
-    else:
-        from django.test.runner import DiscoverRunner
-        failures = DiscoverRunner(
-            top_level=os.getcwd(),
-            verbosity=1,
-            interactive=True,
-            failfast=False
-        ).run_tests(test_args)
+    if failures:
+        sys.exit(failures)"""
 
-        if failures:
-            sys.exit(failures)
+    from django.test import run_tests
+
+    failures = run_tests(['django_ether_logs',], verbosity=1)
+    if failures:
+        sys.exit(failures)
 
 
 runtests()
