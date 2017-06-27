@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from django.test import TestCase
-from django_ether_logs.decoder import Decoder
+from django_eth_events.decoder import Decoder
 from json import loads
 
 
@@ -16,7 +16,8 @@ class TestDecoder(TestCase):
         '"type": "function"}, {"inputs": [{"type": "address", "name": "creator"}], "constant": true, '
         '"name": "getInstantiationCount", "payable": false, "outputs": [{"type": "uint256", "name": ""}], '
         '"type": "function"}, {"inputs": [{"indexed": false, "type": "address", "name": "sender"}, {"indexed": false, '
-        '"type": "address", "name": "instantiation"}], "type": "event", "name": "ContractInstantiation", "anonymous": false}]')
+        '"type": "address", "name": "instantiation"}], "type": "event", "name": "ContractInstantiation", "anonymous": '
+        'false}]')
     decoder = Decoder()
 
     def setUp(self):
@@ -51,16 +52,16 @@ class TestDecoder(TestCase):
         self.assertListEqual(
             [
                 {
-                    u'address': u'0xa6d9c5f7d4de3cef51ad3b7235d79ccc95114de5',
+                    u'address': u'a6d9c5f7d4de3cef51ad3b7235d79ccc95114de5',
                     u'name': u'ContractInstantiation',
                     u'params': [
                         {
                             u'name': u'sender',
-                            u'value': u'0x65039084cc6f4773291a6ed7dcf5bc3a2e894ff3'
+                            u'value': u'65039084cc6f4773291a6ed7dcf5bc3a2e894ff3'
                         },
                         {
                             u'name': u'instantiation',
-                            u'value': u'0x17e054b16ca658789c927c854976450adbda7df0'
+                            u'value': u'17e054b16ca658789c927c854976450adbda7df0'
                         }
                     ]
                 }

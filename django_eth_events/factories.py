@@ -1,5 +1,5 @@
 import factory
-from . import models
+from django_eth_events import models
 
 
 class DaemonFactory(factory.DjangoModelFactory):

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from django.test import TestCase
-from django_ether_logs.factories import DaemonFactory
-from django_ether_logs.models import Daemon
+from django_eth_events.factories import DaemonFactory
+from django_eth_events.models import Daemon
 
 
 class TestDaemonModel(TestCase):

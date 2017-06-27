@@ -1,1 +1,1 @@
-default_app_config = 'django_ether_logs.apps.EtherLogsConfig'
+default_app_config = 'django_eth_events.apps.EtherLogsConfig'
