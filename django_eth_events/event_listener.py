@@ -5,10 +5,10 @@ from django.conf import settings
 from django.utils.module_loading import import_string
 from ethereum.utils import remove_0x_head
 
-from .decoder import Decoder
-from .models import Daemon
-from .singleton import Singleton
-from .web3_service import Web3Service
+from django_eth_events.decoder import Decoder
+from django_eth_events.models import Daemon
+from django_eth_events.singleton import Singleton
+from django_eth_events.web3_service import Web3Service
 
 logger = get_task_logger(__name__)
 
