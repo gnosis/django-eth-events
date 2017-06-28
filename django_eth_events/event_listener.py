@@ -1,5 +1,3 @@
-from threading import RLock
-
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.utils.module_loading import import_string
@@ -24,28 +22,11 @@ class EventListener(Singleton):
         self.decoder = Decoder()  # Decodes Ethereum logs
         self.web3 = Web3Service().web3  # Gets transaction and block info from ethereum
         self.contract_map = contract_map  # Taken from settings, it's the contracts we listen to
-        self.mutex = RLock()
-
-    def get_logs(self, block_number):
-        with self.mutex:
-            return self.__get_logs(block_number)
-
-    def execute(self):
-        with self.mutex:
-            return self.__execute()
 
     def next_block(self):
-        with self.mutex:
-            return self.__next_block()
-
-    def update_and_next_block(self):
-        with self.mutex:
-            return self.__update_and_next_block()
-
-    def __next_block(self):
         return Daemon.get_solo().block_number
 
-    def __update_and_next_block(self):
+    def update_and_next_block(self):
         """
         Increases ethereum block saved on database to current one and returns the block numbers of
         blocks mined since last event_listener execution
@@ -61,7 +42,7 @@ class EventListener(Singleton):
         else:
             return []
 
-    def __get_logs(self, block_number):
+    def get_logs(self, block_number):
         """
         By a given block number returns a pair logs, block_info
         logs it's an array of decoded ethereum log dictionaries
@@ -81,7 +62,7 @@ class EventListener(Singleton):
         else:
             raise UnknownBlock
 
-    def __get_watched_contract_addresses(self, contract):
+    def get_watched_contract_addresses(self, contract):
         addresses = None
         try:
             if contract.get('ADDRESSES'):
@@ -94,12 +75,12 @@ class EventListener(Singleton):
             raise LookupError("Could not retrieve watched addresses for contract {}".format(contract))
         return addresses
 
-    def __save_events(self, contract, decoded_logs, block_info):
+    def save_events(self, contract, decoded_logs, block_info):
         EventReceiver = import_string(contract['EVENT_DATA_RECEIVER'])
         for decoded_log in decoded_logs:
             EventReceiver().save(decoded_event=decoded_log, block_info=block_info)
 
-    def __execute(self):
+    def execute(self):
         # update block number
         # get blocks and decode logs
         for block in self.update_and_next_block():
@@ -114,7 +95,7 @@ class EventListener(Singleton):
                 self.decoder.add_abi(contract['EVENT_ABI'])
 
                 # Get watched contract addresses
-                watched_addresses = self.__get_watched_contract_addresses(contract)
+                watched_addresses = self.get_watched_contract_addresses(contract)
 
                 # Filter logs by relevant addresses
                 target_logs = [log for log in logs if remove_0x_head(log['address']) in watched_addresses]
@@ -123,4 +104,4 @@ class EventListener(Singleton):
                 decoded_logs = self.decoder.decode_logs(target_logs)
 
                 # Save events
-                self.__save_events(contract, decoded_logs, block_info)
+                self.save_events(contract, decoded_logs, block_info)

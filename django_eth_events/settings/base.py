@@ -65,4 +65,6 @@ DATABASES = {
   }
 }
 
+CELERY_LOCK_EXPIRE = 60 # 1 minute
+
 ETH_EVENTS = []

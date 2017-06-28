@@ -20,7 +20,6 @@ requirements = [
     'factory-boy==2.5.2',
     'web3==3.7.1',
     'kombu==3.0.37',
-    'django_filters',
     'django-filter==1.0.4'
 ]
 
@@ -31,7 +30,7 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     # license='BSD License',  # example license
-    description='A simple Django app to react to ethereum events.',
+    description='A simple Django app to react to Ethereum events.',
     # long_description=README,
     url='https://github.com/gnosis/django-eth-events',
     author='Gnosis',

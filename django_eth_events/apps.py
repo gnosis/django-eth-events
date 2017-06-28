@@ -5,7 +5,7 @@ from django.conf import settings
 import sys
 
 from celery import Celery
-app = Celery('django_ether_logs')
+app = Celery('django_eth_events')
 
 
 class EtherLogsConfig(AppConfig):
@@ -15,4 +15,3 @@ class EtherLogsConfig(AppConfig):
         super(EtherLogsConfig, self).ready()
         app.config_from_object('django.conf:settings')
         app.autodiscover_tasks(lambda: settings.INSTALLED_APPS, force=True)
-
