@@ -8,6 +8,7 @@ from django.core.cache import cache
 
 logger = get_task_logger(__name__)
 
+oid = 'LOCK'
 
 @contextmanager
 def cache_lock(lock_id, oid):
@@ -27,9 +28,9 @@ def cache_lock(lock_id, oid):
 
 
 @shared_task
-def event_listener(self):
+def event_listener():
     try:
-        with cache_lock('eth_events', self.app.oid) as acquired:
+        with cache_lock('eth_events', oid) as acquired:
             if acquired:
                 bot = EventListener()
                 bot.execute()
