@@ -8,8 +8,6 @@ INSTALLED_APPS = (
 # CELERY CONFIGURATION
 # ------------------------------------------------------------------------------
 
-
-
 INSTALLED_APPS += ('kombu.transport.django',)
 # ETHEREUM_NODE_HOST='192.168.0.103'
 ETHEREUM_NODE_HOST = 'localhost'
