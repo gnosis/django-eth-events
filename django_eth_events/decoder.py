@@ -2,7 +2,6 @@ from celery.utils.log import get_task_logger
 from eth_abi import decode_abi
 from ethereum.utils import remove_0x_head
 from ethereum.utils import sha3
-
 from .singleton import Singleton
 
 logger = get_task_logger(__name__)
@@ -16,6 +15,18 @@ class Decoder(Singleton):
 
     methods = {}
 
+    @staticmethod
+    def get_method_id(item):
+        method_header = None
+        if item.get(u'inputs'):
+            # Generate methodID and link it with the abi
+            method_header = "{}({})".format(item[u'name'],
+                                            ','.join(map(lambda input: input[u'type'], item[u'inputs'])))
+        else:
+            method_header = "{}()".format(item[u'name'])
+
+        return sha3(method_header).encode('hex')
+
     def add_abi(self, abi):
         """
         Add ABI array into the decoder collection, in this step the method id is generated from:
@@ -26,15 +37,7 @@ class Decoder(Singleton):
         added = 0
         for item in abi:
             if item.get(u'name'):
-                method_header = None
-                if item.get(u'inputs'):
-                    # Generate methodID and link it with the abi
-                    method_header = "{}({})".format(item[u'name'],
-                                                    ','.join(map(lambda input: input[u'type'], item[u'inputs'])))
-                else:
-                    method_header = "{}()".format(item[u'name'])
-
-                method_id = sha3(method_header).encode('hex')
+                method_id = self.get_method_id(item)
                 self.methods[method_id] = item
                 added += 1
         return added
@@ -47,10 +50,7 @@ class Decoder(Singleton):
         """
         for item in abis:
             if item.get(u'name'):
-                # Generate methodID and link it with the abi
-                method_header = "{}({})".format(item[u'name'],
-                                                ','.join(map(lambda input: input[u'type'], item[u'inputs'])))
-                method_id = sha3(method_header).encode('hex')
+                method_id = self.get_method_id(item)
                 if self.methods.get(method_id):
                     del self.methods[method_id]
 
