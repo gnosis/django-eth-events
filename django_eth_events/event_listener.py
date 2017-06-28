@@ -19,9 +19,9 @@ class UnknownBlock(Exception):
 
 class EventListener(Singleton):
 
-    def __init__(self, contract_map=settings.GNOSISDB_CONTRACTS):
+    def __init__(self, contract_map=settings.ETH_EVENTS):
         super(EventListener, self).__init__()
-        self.decoder = Decoder()  # Decodes ethereum logs
+        self.decoder = Decoder()  # Decodes Ethereum logs
         self.web3 = Web3Service().web3  # Gets transaction and block info from ethereum
         self.contract_map = contract_map  # Taken from settings, it's the contracts we listen to
         self.mutex = RLock()

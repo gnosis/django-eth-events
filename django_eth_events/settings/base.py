@@ -67,4 +67,4 @@ DATABASES = {
   }
 }
 
-GNOSISDB_CONTRACTS = []
+ETH_EVENTS = []
