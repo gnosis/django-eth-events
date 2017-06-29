@@ -1,30 +1,14 @@
-SECRET_KEY = 'testtest'
-DEBUG = True
-INSTALLED_APPS = (
-    'djcelery',
-    'solo',
-    'django_eth_events',
-)
+# ------------------------------------------------------------------------------
+# ETHEREUM CONFIGURATION
+# ------------------------------------------------------------------------------
+ETHEREUM_NODE_HOST = 'https://mainnet.infura.io'
+ETHEREUM_NODE_PORT = 8545
+ETHEREUM_NODE_SSL = 1
+
+# ------------------------------------------------------------------------------
 # CELERY CONFIGURATION
 # ------------------------------------------------------------------------------
-
-INSTALLED_APPS += ('kombu.transport.django',)
-# ETHEREUM_NODE_HOST='192.168.0.103'
-ETHEREUM_NODE_HOST = 'localhost'
-ETHEREUM_NODE_PORT = 8545
-ETHEREUM_NODE_SSL = 0
-
-RABBIT_HOSTNAME = 'rabbit'
-RABBIT_USER = 'gnosisdb'
-RABBIT_PASSWORD = 'gnosisdb'
-RABBIT_PORT = '5672'
-BROKER_URL = 'amqp://{user}:{password}@{hostname}:{port}'.format(
-    user=RABBIT_USER,
-    password=RABBIT_PASSWORD,
-    hostname=RABBIT_HOSTNAME,
-    port=RABBIT_PORT
-)
-
+BROKER_URL = 'django://'
 BROKER_POOL_LIMIT = 1
 BROKER_CONNECTION_TIMEOUT = 10
 
@@ -52,19 +36,12 @@ CELERY_ACCEPT_CONTENT = ['application/json']
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERYD_MAX_TASKS_PER_CHILD = 1000
-
-# IPFS
-IPFS_HOST = 'http://ipfs'  # 'ipfs'
-IPFS_PORT = 5001
-
-
-DATABASES = {
-  'default': {
-    'ENGINE': 'django.db.backends.sqlite3',
-    'NAME': ':memory:',
-  }
-}
-
 CELERY_LOCK_EXPIRE = 60 # 1 minute
+
+# ------------------------------------------------------------------------------
+# IPFS CONFIGURATION
+# ------------------------------------------------------------------------------
+IPFS_HOST = 'http://ipfs.infura.io'
+IPFS_PORT = 5001
 
 ETH_EVENTS = []
