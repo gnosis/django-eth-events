@@ -23,24 +23,27 @@ class EventListener(Singleton):
         self.web3 = Web3Service().web3  # Gets transaction and block info from ethereum
         self.contract_map = contract_map  # Taken from settings, it's the contracts we listen to
 
+    @staticmethod
     def next_block(self):
         return Daemon.get_solo().block_number
 
-    def update_and_next_block(self):
+    def get_last_mined_blocks(self):
         """
-        Increases ethereum block saved on database to current one and returns the block numbers of
-        blocks mined since last event_listener execution
+        Returns the block numbers of blocks mined since last event_listener execution
         :return: [int]
         """
         daemon = Daemon.get_solo()
         current = self.web3.eth.blockNumber
         if daemon.block_number < current:
             blocks_to_update = range(daemon.block_number+1, current+1)
-            daemon.block_number = current
-            daemon.save()
             return blocks_to_update
         else:
             return []
+
+    def update_block_number(self, block_number):
+        daemon = Daemon.get_solo()
+        daemon.block_number = block_number
+        daemon.save()
 
     def get_logs(self, block_number):
         """
@@ -83,7 +86,8 @@ class EventListener(Singleton):
     def execute(self):
         # update block number
         # get blocks and decode logs
-        for block in self.update_and_next_block():
+        last_mined_blocks = self.get_last_mined_blocks()
+        for block in last_mined_blocks:
             # first get un-decoded logs and the block info
             logs, block_info = self.get_logs(block)
 
@@ -105,3 +109,6 @@ class EventListener(Singleton):
 
                 # Save events
                 self.save_events(contract, decoded_logs, block_info)
+
+        # Update block number after execution
+        self.update_block_number(last_mined_blocks[-1])

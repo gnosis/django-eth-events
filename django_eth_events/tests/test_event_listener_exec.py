@@ -6,6 +6,7 @@ from django_eth_events.factories import DaemonFactory
 from django_eth_events.event_listener import EventListener
 from django_eth_events.web3_service import Web3Service
 from django_eth_events.chainevents import AbstractEventReceiver
+from django_eth_events.models import Daemon
 from web3 import TestRPCProvider
 from json import loads, dumps
 import os
@@ -105,9 +106,11 @@ class TestDaemonExec(TestCase):
 
     def test_create_centralized_oracle(self):
         self.assertEqual(len(centralized_oracles), 0)
+        self.assertEqual(0, Daemon.get_solo().block_number)
 
         # Create centralized oracle
         tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle('QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
         self.assertIsNotNone(tx_hash)
         self.listener_under_test.execute()
         self.assertEqual(len(centralized_oracles), 1)
+        self.assertEqual(1, Daemon.get_solo().block_number)
