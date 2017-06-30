@@ -95,11 +95,13 @@ class EventListener(Singleton):
             # Decode logs #
             ###########################
             for contract in self.contract_map:
+                logger.info('# event_listener.execute, contract: {}'.format(contract))
                 # Add ABI
                 self.decoder.add_abi(contract['EVENT_ABI'])
 
                 # Get watched contract addresses
                 watched_addresses = self.get_watched_contract_addresses(contract)
+                logger.info("# watched addresses: {}".format(watched_addresses))
 
                 # Filter logs by relevant addresses
                 target_logs = [log for log in logs if remove_0x_head(log['address']) in watched_addresses]
