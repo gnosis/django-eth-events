@@ -110,5 +110,6 @@ class EventListener(Singleton):
                 # Save events
                 self.save_events(contract, decoded_logs, block_info)
 
-        # Update block number after execution
-        self.update_block_number(last_mined_blocks[-1])
+        if len(last_mined_blocks):
+            # Update block number after execution
+            self.update_block_number(last_mined_blocks[-1])
