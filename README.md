@@ -26,15 +26,13 @@ Create a new array variable in your settings file and call it ETH_EVENTS as foll
 ```
 ETH_EVENTS = [
     {
-        'ADDRESSES': ['254dffcd3277c0b1660f6d42efbb754edababc2b'],
-        'ADDRESSES_GETTER': '',
+        'ADDRESSES': ['254dffcd3277c0b1660f6d42efbb754edababc2b'],      
         'EVENT_ABI': '... ABI ...',
         'EVENT_DATA_RECEIVER': 'yourmodule.event_receivers.YourReceiverClass',
         'NAME': 'Your Contract Name',
         'PUBLISH': True,
     },
-    {
-        'ADDRESSES': [],
+    {        
         'ADDRESSES_GETTER': 'yourmodule.address_getters.YouCustomAddressGetter',
         'EVENT_ABI': '... ABI ...',
         'EVENT_DATA_RECEIVER': 'chainevents.event_receivers.MarketInstanceReceiver',
