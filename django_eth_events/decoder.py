@@ -1,10 +1,10 @@
-from celery.utils.log import get_task_logger
+# from celery.utils.log import get_task_logger
 from eth_abi import decode_abi
 from ethereum.utils import remove_0x_head
 from ethereum.utils import sha3
 from .singleton import Singleton
 
-logger = get_task_logger(__name__)
+# logger = get_task_logger(__name__)
 
 
 class Decoder(Singleton):
@@ -98,7 +98,6 @@ class Decoder(Singleton):
                     decoded_p[u'value'] = list(decoded_p[u'value'])
             elif u'address' == param[u'type']:
                 address = remove_0x_head(decoded_p[u'value'])
-                # logger.info('address, length {}'.format(len(address)))
                 if len(address) == 40:
                     decoded_p[u'value'] = address
                 elif len(address) == 64:
