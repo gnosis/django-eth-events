@@ -30,7 +30,7 @@ def error_email(func):
             # get last error block number from cache
             last_error_block_number = cache.get_or_set('last_error_block_number', 0)
             # get current block number from database
-            current_block_number = Daemon.block_number
+            current_block_number = Daemon.get_solo().block_number
 
             if last_error_block_number < current_block_number:
                 send_email(err.message)
