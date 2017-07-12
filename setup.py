@@ -29,16 +29,16 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
-    # license='BSD License',  # example license
+    license='GPLv3',
     description='A simple Django app to react to Ethereum events.',
-    # long_description=README,
     url='https://github.com/gnosis/django-eth-events',
     author='Gnosis',
     author_email='dev@gnosis.pm',
+    keywords=['ethereum', 'gnosis'],
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
-        'Intended Audience :: Developers'
+        'Intended Audience :: Developers',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP',

@@ -5,6 +5,8 @@ from celery.five import monotonic
 from contextlib import contextmanager
 from django.conf import settings
 from django.core.cache import cache
+from django.core.mail import mail_admins
+from django_eth_events.models import Daemon
 
 logger = get_task_logger(__name__)
 
@@ -36,3 +38,22 @@ def event_listener():
                 bot.execute()
     except Exception as err:
         logger.error(str(err))
+        # get last error block number from cache
+        last_error_block_number = cache.get('last_error_block_number')
+        # get current block number from database
+        current_block_number = Daemon.block_number
+
+        if last_error_block_number and last_error_block_number == current_block_number:
+            pass
+        else:
+            # send email
+            message = err.message
+            mail_admins('[GnosisDB Celery Error] ', message)
+            # save block number into cache
+            cache.add('last_error_block_number', current_block_number)
+
+
+
+
+
+
