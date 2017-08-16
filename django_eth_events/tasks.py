@@ -20,10 +20,12 @@ def error_email(func):
     def inner(*args, **kwargs):
 
         def send_email(message):
+            logger.info('Sending email with text: {}'.format(message))
             # send email
             mail_admins('[ETH Events Error] ', message)
 
         try:
+            logger.info("Execute func()")
             func(*args, **kwargs)
         except Exception as err:
             logger.error(str(err))
@@ -32,7 +34,9 @@ def error_email(func):
             last_error_block_number = daemon.last_error_block_number
             # get current block number from database
             current_block_number = daemon.block_number
-
+            logger.info("Current block number: {}, Last error block number: {}".format(
+                current_block_number, last_error_block_number
+            ))
             if last_error_block_number < current_block_number:
                 send_email(err.message)
                 # save block number into cache
