@@ -35,12 +35,7 @@ def error_email(func):
             if last_error_block_number < current_block_number:
                 send_email(err.message)
                 # save block number into cache
-                cache.set('last_error_block_number', current_block_number)
-            elif not last_error_block_number:
-                # send email
-                send_email(err.message)
-                # save block number into cache
-                cache.set('last_error_block_number', current_block_number)
+                cache.add('last_error_block_number', current_block_number)
 
     return inner
 
