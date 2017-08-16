@@ -14,38 +14,6 @@ logger = get_task_logger(__name__)
 oid = 'LOCK'
 
 
-def error_email(func):
-
-    @wraps(func)
-    def inner(*args, **kwargs):
-
-        def send_email(message):
-            logger.info('Sending email with text: {}'.format(message))
-            # send email
-            mail_admins('[ETH Events Error] ', message)
-
-        try:
-            logger.info("Execute func()")
-            func(*args, **kwargs)
-        except Exception as err:
-            logger.error(str(err))
-            daemon = Daemon.get_solo()
-            # get last error block number database
-            last_error_block_number = daemon.last_error_block_number
-            # get current block number from database
-            current_block_number = daemon.block_number
-            logger.info("Current block number: {}, Last error block number: {}".format(
-                current_block_number, last_error_block_number
-            ))
-            if last_error_block_number < current_block_number:
-                send_email(err.message)
-                # save block number into cache
-                daemon.last_error_block_number = current_block_number
-                daemon.save()
-
-    return inner
-
-
 @contextmanager
 def cache_lock(lock_id, oid):
     timeout_at = monotonic() + settings.CELERY_LOCK_EXPIRE
@@ -63,13 +31,34 @@ def cache_lock(lock_id, oid):
             cache.delete(lock_id)
 
 
-@error_email
+def send_email(message):
+    logger.info('Sending email with text: {}'.format(message))
+    # send email
+    mail_admins('[ETH Events Error] ', message)
+
+
 @shared_task
 def event_listener():
     with cache_lock('eth_events', oid) as acquired:
         if acquired:
             bot = EventListener()
-            bot.execute()
+            try:
+                bot.execute()
+            except Exception as err:
+                logger.error(str(err))
+                daemon = Daemon.get_solo()
+                # get last error block number database
+                last_error_block_number = daemon.last_error_block_number
+                # get current block number from database
+                current_block_number = daemon.block_number
+                logger.info("Current block number: {}, Last error block number: {}".format(
+                    current_block_number, last_error_block_number
+                ))
+                if last_error_block_number < current_block_number:
+                    send_email(err.message)
+                    # save block number into cache
+                    daemon.last_error_block_number = current_block_number
+                    daemon.save()
 
 
 
