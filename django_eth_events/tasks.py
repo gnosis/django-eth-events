@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.core.mail import mail_admins
 from django_eth_events.models import Daemon
 from functools import wraps
+import traceback
 
 logger = get_task_logger(__name__)
 
@@ -55,7 +56,7 @@ def event_listener():
                     current_block_number, last_error_block_number
                 ))
                 if last_error_block_number < current_block_number:
-                    send_email(err.message)
+                    send_email(traceback.format_exc())
                     # save block number into cache
                     daemon.last_error_block_number = current_block_number
                     daemon.save()
