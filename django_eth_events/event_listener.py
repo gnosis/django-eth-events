@@ -35,7 +35,11 @@ class EventListener(Singleton):
         daemon = Daemon.get_solo()
         current = self.web3.eth.blockNumber
         if daemon.block_number < current:
-            blocks_to_update = range(daemon.block_number+1, current+1)
+            max_blocks_to_process = int(getattr(settings, 'ETH_PROCESS_BLOCKS', '10000'))
+            if current - daemon.block_number > max_blocks_to_process:
+                blocks_to_update = range(daemon.block_number+1, daemon.block_number + max_blocks_to_process)
+            else:
+                blocks_to_update = range(daemon.block_number + 1, current + 1)
             return blocks_to_update
         else:
             return []
