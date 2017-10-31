@@ -8,6 +8,8 @@ from django_eth_events.models import Daemon
 from django_eth_events.singleton import Singleton
 from django_eth_events.web3_service import Web3Service
 
+from json import dumps
+
 logger = get_task_logger(__name__)
 
 
@@ -91,9 +93,11 @@ class EventListener(Singleton):
         # update block number
         # get blocks and decode logs
         last_mined_blocks = self.get_last_mined_blocks()
+        logger.info('{} blocks mined from {} to {}'.format(len(last_mined_blocks), last_mined_blocks[0], last_mined_blocks[-1]))
         for block in last_mined_blocks:
             # first get un-decoded logs and the block info
             logs, block_info = self.get_logs(block)
+            logger.info('got {} logs in block {}'.format(len(logs), dumps(block_info)))
 
             ###########################
             # Decode logs #
@@ -103,13 +107,17 @@ class EventListener(Singleton):
                 self.decoder.add_abi(contract['EVENT_ABI'])
 
                 # Get watched contract addresses
-                watched_addresses = self.get_watched_contract_addresses(contract)                
+                watched_addresses = self.get_watched_contract_addresses(contract)
 
                 # Filter logs by relevant addresses
                 target_logs = [log for log in logs if remove_0x_head(log['address']) in watched_addresses]
 
+                logger.info('{} logs with watched address {}'.format(len(target_logs), watched_addresses))
+
                 # Decode logs
                 decoded_logs = self.decoder.decode_logs(target_logs)
+
+                logger.info('{} decoded logs {}'.format(len(decoded_logs)))
 
                 # Save events
                 self.save_events(contract, decoded_logs, block_info)
