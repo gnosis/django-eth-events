@@ -36,10 +36,12 @@ class EventListener(Singleton):
         """
         daemon = Daemon.get_solo()
         current = self.web3.eth.blockNumber
+
+        logger.info('no blocks mined, daemon: {} current: {}'.format(daemon.block_number, current))
         if daemon.block_number < current:
             max_blocks_to_process = int(getattr(settings, 'ETH_PROCESS_BLOCKS', '10000'))
             if current - daemon.block_number > max_blocks_to_process:
-                blocks_to_update = range(daemon.block_number+1, daemon.block_number + max_blocks_to_process)
+                blocks_to_update = range(daemon.block_number + 1, daemon.block_number + max_blocks_to_process)
             else:
                 blocks_to_update = range(daemon.block_number + 1, current + 1)
             return blocks_to_update
@@ -93,11 +95,14 @@ class EventListener(Singleton):
         # update block number
         # get blocks and decode logs
         last_mined_blocks = self.get_last_mined_blocks()
-        logger.info('{} blocks mined from {} to {}'.format(len(last_mined_blocks), last_mined_blocks[0], last_mined_blocks[-1]))
+        if len(last_mined_blocks):
+            logger.info('{} blocks mined from {} to {}'.format(len(last_mined_blocks), last_mined_blocks[0], last_mined_blocks[-1]))
+        else:
+            logger.info('no blocks mined')
         for block in last_mined_blocks:
             # first get un-decoded logs and the block info
             logs, block_info = self.get_logs(block)
-            logger.info('got {} logs in block {}'.format(len(logs), dumps(block_info)))
+            logger.info('got {} logs in block {}'.format(len(logs), block_info['number']))
 
             ###########################
             # Decode logs #
@@ -112,16 +117,17 @@ class EventListener(Singleton):
                 # Filter logs by relevant addresses
                 target_logs = [log for log in logs if remove_0x_head(log['address']) in watched_addresses]
 
-                logger.info('{} logs with watched address {}'.format(len(target_logs), watched_addresses))
+                logger.info('{} logs'.format(len(target_logs)))
 
                 # Decode logs
                 decoded_logs = self.decoder.decode_logs(target_logs)
 
-                logger.info('{} decoded logs {}'.format(len(decoded_logs)))
+                logger.info('{} decoded logs'.format(len(decoded_logs)))
 
                 # Save events
                 self.save_events(contract, decoded_logs, block_info)
 
         if len(last_mined_blocks):
             # Update block number after execution
+            logger.info('update daemon block_number={}'.format(last_mined_blocks[-1]))
             self.update_block_number(last_mined_blocks[-1])
