@@ -107,25 +107,26 @@ class EventListener(Singleton):
             ###########################
             # Decode logs #
             ###########################
-            for contract in self.contract_map:
-                # Add ABI
-                self.decoder.add_abi(contract['EVENT_ABI'])
+            if len(logs):
+                for contract in self.contract_map:
+                    # Add ABI
+                    self.decoder.add_abi(contract['EVENT_ABI'])
 
-                # Get watched contract addresses
-                watched_addresses = self.get_watched_contract_addresses(contract)
+                    # Get watched contract addresses
+                    watched_addresses = self.get_watched_contract_addresses(contract)
 
-                # Filter logs by relevant addresses
-                target_logs = [log for log in logs if remove_0x_head(log['address']) in watched_addresses]
+                    # Filter logs by relevant addresses
+                    target_logs = [log for log in logs if remove_0x_head(log['address']) in watched_addresses]
 
-                logger.info('{} logs'.format(len(target_logs)))
+                    logger.info('{} logs'.format(len(target_logs)))
 
-                # Decode logs
-                decoded_logs = self.decoder.decode_logs(target_logs)
+                    # Decode logs
+                    decoded_logs = self.decoder.decode_logs(target_logs)
 
-                logger.info('{} decoded logs'.format(len(decoded_logs)))
+                    logger.info('{} decoded logs'.format(len(decoded_logs)))
 
-                # Save events
-                self.save_events(contract, decoded_logs, block_info)
+                    # Save events
+                    self.save_events(contract, decoded_logs, block_info)
 
         if len(last_mined_blocks):
             # Update block number after execution
