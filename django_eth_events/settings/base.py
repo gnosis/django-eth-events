@@ -14,7 +14,6 @@ BROKER_CONNECTION_TIMEOUT = 10
 
 # Celery configuration
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = 'djcelery.backends.cache:CacheBackend'
 # configure queues, currently we have only one
 CELERY_DEFAULT_QUEUE = 'default'
 
