@@ -6,7 +6,6 @@ DEBUG = True
 INSTALLED_APPS = (
     'solo',
     'django_eth_events',
-    'kombu.transport.django',
 )
 
 ETHEREUM_NODE_HOST = 'localhost'

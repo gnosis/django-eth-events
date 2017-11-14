@@ -8,10 +8,9 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 requirements = [
     'six==1.10.0',
     'bitcoin==1.1.42',
-    'celery==3.1.25',
+    'celery==4.1.0',
     'Django==1.11',
     'django-authtools==1.5.0',
-    'django-celery==3.2.1',
     'django-model-utils==2.6.1',
     'django-solo==1.1.2',
     'ethereum==1.6.1',
@@ -19,7 +18,7 @@ requirements = [
     'ethereum-utils==0.2.0',
     'factory-boy==2.5.2',
     'web3==3.7.1',
-    'kombu==3.0.37',
+    'kombu==4.1.0',
     'django-filter==1.0.4'
 ]
 

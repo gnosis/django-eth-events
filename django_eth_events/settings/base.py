@@ -8,7 +8,7 @@ ETHEREUM_NODE_SSL = 1
 # ------------------------------------------------------------------------------
 # CELERY CONFIGURATION
 # ------------------------------------------------------------------------------
-BROKER_URL = 'django://'
+# BROKER_URL = 'django://'
 BROKER_POOL_LIMIT = 1
 BROKER_CONNECTION_TIMEOUT = 10
 
