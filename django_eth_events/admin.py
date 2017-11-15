@@ -6,4 +6,3 @@ from . import models
 
 
 admin.site.register(models.Daemon, SingletonModelAdmin)
-# admin.site.register(models.Alert)
