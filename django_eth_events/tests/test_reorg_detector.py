@@ -92,15 +92,6 @@ class TestReorgDetector(TestCase):
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 0)
 
-        block_hash_2 = '{:040d}'.format(2)
-        cache.set('0x2', block_hash_2)
-        cache.set('block_number', '0x3')
-        Block.objects.create(block_hash=block_hash_2, block_number=2)
-        Daemon.objects.all().update(block_number=2)
-        (had_reorg, block_number) = check_reorg()
-        self.assertTrue(had_reorg)
-        self.assertEqual(block_number, 0)
-
         Block.objects.filter(block_number=1).update(block_hash=block_hash_1)
         (had_reorg, _) = check_reorg()
         self.assertFalse(had_reorg)
@@ -131,7 +122,7 @@ class TestReorgDetector(TestCase):
 
         # new block number changed more than one unit
         block_hash_1 = '{:040d}'.format(1)
-        cache.set('0x1', block_hash_1)
+        cache.set('0x1', block_hash_1) # set_mocked_testrpc_block_hash
         cache.set('block_number', '0x9')
         Block.objects.create(block_hash=block_hash_1, block_number=1)
         Daemon.objects.all().update(block_number=1)
@@ -160,13 +151,24 @@ class TestReorgDetector(TestCase):
         self.assertEqual(block_number, 0)
 
         block_hash_2 = '{:040d}'.format(2)
-        cache.set('0x2', block_hash_2)
+        cache.set('0x2', block_hash_reorg)
         cache.set('block_number', '0x9')
         Block.objects.create(block_hash=block_hash_2, block_number=2)
         Daemon.objects.all().update(block_number=2)
         (had_reorg, block_number) = check_reorg()
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 0)
+
+        Block.objects.filter(block_number=1).update(block_hash=block_hash_1)
+
+        (had_reorg, block_number) = check_reorg()
+        self.assertTrue(had_reorg)
+        self.assertEqual(block_number, 1)
+
+        Block.objects.filter(block_number=2).update(block_hash=block_hash_2)
+        cache.set('0x2', block_hash_2)
+        (had_reorg, block_number) = check_reorg()
+        self.assertFalse(had_reorg)
 
     def test_reorg_block_number_decreased(self):
         # block number of the node is lower than the one saved, maybe node changed manually, sync issues, skip
