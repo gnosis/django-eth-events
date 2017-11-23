@@ -19,3 +19,6 @@ class AbstractEventReceiver(object):
 
     @abstractmethod
     def save(self, decoded_event, block_info): pass
+
+    @abstractmethod
+    def rollback(self, decoded_event, block_info): pass
