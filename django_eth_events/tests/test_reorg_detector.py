@@ -9,7 +9,7 @@ from BaseHTTPServer import HTTPServer
 from multiprocessing import Process
 from time import sleep
 from django.core.cache import cache
-from django_eth_events.reorgs import check_reorg, NoBackup, rollback
+from django_eth_events.reorgs import check_reorg, NoBackup
 from django_eth_events.models import Block, Daemon
 from django_eth_events.chainevents import AbstractEventReceiver
 

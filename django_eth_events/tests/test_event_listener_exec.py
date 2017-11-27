@@ -6,11 +6,11 @@ from django_eth_events.factories import DaemonFactory
 from django_eth_events.event_listener import EventListener
 from django_eth_events.web3_service import Web3Service
 from django_eth_events.chainevents import AbstractEventReceiver
-from django_eth_events.models import Daemon
+from django_eth_events.models import Daemon, Block
 from web3 import TestRPCProvider
 from json import loads, dumps
 import os
-
+from time import sleep
 
 centralized_oracle_bytecode = "6060604052341561000c57fe5b5b6109ad8061001c6000396000f30060606040526000357c01000000000000000000000000000000" \
                               "00000000000000000000000000900463ffffffff1680634e2f220c1461003b575bfe5b341561004357fe5b61009360048080359060" \
@@ -70,6 +70,8 @@ class CentralizedOraclesReceiver(AbstractEventReceiver):
     def save(self, decoded_event, block_info):
         centralized_oracles.append(decoded_event)
 
+    def rollback(self, decoded_event, block_info):
+        centralized_oracles.pop()
 
 class TestDaemonExec(TestCase):
     def setUp(self):
@@ -103,10 +105,13 @@ class TestDaemonExec(TestCase):
         self.rpc.server.shutdown()
         self.rpc.server.server_close()
         self.rpc = None
+        global centralized_oracles
+        centralized_oracles = []
 
     def test_create_centralized_oracle(self):
         self.assertEqual(len(centralized_oracles), 0)
         self.assertEqual(0, Daemon.get_solo().block_number)
+        self.assertEqual(0, Block.objects.all().count())
 
         # Create centralized oracle
         tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle('QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
@@ -114,3 +119,48 @@ class TestDaemonExec(TestCase):
         self.listener_under_test.execute()
         self.assertEqual(len(centralized_oracles), 1)
         self.assertEqual(1, Daemon.get_solo().block_number)
+
+        # Check backup
+        self.assertEqual(1, Block.objects.all().count())
+        block = Block.objects.get(block_number=1)
+        self.assertEqual(1, len(loads(block.decoded_logs)))
+
+    def test_reorg_centralized_oracle(self):
+        # initial transaction, to set reorg init
+        accounts = self.web3.eth.accounts
+        self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 5000000})
+        self.assertEqual(0, Block.objects.all().count())
+        self.assertEqual(len(centralized_oracles), 0)
+        self.assertEqual(1, self.web3.eth.blockNumber)
+
+        # Create centralized oracle
+        tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
+            'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+        self.assertIsNotNone(tx_hash)
+        self.listener_under_test.execute()
+        self.assertEqual(len(centralized_oracles), 1)
+        self.assertEqual(2, Daemon.get_solo().block_number)
+        self.assertEqual(2, Block.objects.all().count())
+        self.assertEqual(2, self.web3.eth.blockNumber)
+
+        # Reset blockchain (simulates reorg)
+        self.rpc.server.shutdown()
+        self.rpc.server.server_close()
+        self.rpc = TestRPCProvider()
+        web3_service = Web3Service(self.rpc)
+        self.web3 = web3_service.web3
+        self.assertEqual(0, self.web3.eth.blockNumber)
+
+        self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
+        self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
+        self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
+        self.assertEqual(2, self.web3.eth.blockNumber)
+
+        # force block_hash change (cannot recreate a real reorg with python testrpc)
+        block_hash = self.web3.eth.getBlock(1)['hash']
+        Block.objects.filter(block_number=1).update(block_hash=block_hash)
+
+        self.listener_under_test.execute()
+        self.assertEqual(len(centralized_oracles), 0)
+        self.assertEqual(2, Daemon.get_solo().block_number)
+        self.assertEqual(1, Block.objects.all().count())

@@ -7,6 +7,7 @@ from django_eth_events.decoder import Decoder
 from django_eth_events.models import Daemon, Block
 from django_eth_events.singleton import Singleton
 from django_eth_events.web3_service import Web3Service
+from django_eth_events.reorgs import check_reorg
 
 from json import dumps, loads
 
@@ -104,16 +105,39 @@ class EventListener(Singleton):
             decoded_logs = loads(block.decoded_logs)
             logger.info('rolling back {} block, {} logs'.format(block.block_number, len(decoded_logs)))
             if len(decoded_logs):
-                for log in decoded_logs:
-                    self.revert_events(log['event_receiver'], log['logs'], block.block_number)
+                for event_receiver, logs in decoded_logs.iteritems():
+                    self.revert_events(event_receiver, logs, block.block_number)
+
+        # Remove backups from future blocks (old chain)
+        blocks.delete()
 
     def backup(self, block_hash, block_number, decoded_logs, event_receiver_string):
         # Get block or create new one
-        block = Block.objects.get_or_create(block_hash=block_hash)
+        block, _ = Block.objects.get_or_create(block_hash=block_hash, defaults={'block_number': block_number})
 
-        
+        saved_logs = loads(block.decoded_logs)
+
+        if saved_logs.get(event_receiver_string) is None:
+            saved_logs[event_receiver_string] = []
+
+        saved_logs[event_receiver_string].extend(decoded_logs)
+
+        block.decoded_logs = dumps(saved_logs)
+        block.save()
+
+    def clean_old_backups(self):
+        max_blocks_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
+        current_block = Daemon.get_solo().block_number
+
+        Block.objects.filter(block_number__lt=current_block-max_blocks_backup).delete()
 
     def execute(self):
+        # Check reorg
+        had_reorg, reorg_block_number = check_reorg()
+
+        if had_reorg:
+            self.rollback(reorg_block_number)
+
         # update block number
         # get blocks and decode logs
         last_mined_blocks = self.get_last_mined_blocks()
@@ -153,9 +177,15 @@ class EventListener(Singleton):
 
                         max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
                         if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
-                            self.backup(block, decoded_logs, contract['EVENT_DATA_RECEIVER'])
+                            self.backup(block_info['hash'], block_info['number'], decoded_logs, contract['EVENT_DATA_RECEIVER'])
+
+            # backup block if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
+            Block.objects.get_or_create(block_number=block, block_hash=block_info['hash'])
 
         if len(last_mined_blocks):
             # Update block number after execution
             logger.info('update daemon block_number={}'.format(last_mined_blocks[-1]))
             self.update_block_number(last_mined_blocks[-1])
+
+            # Remove older backups
+            self.clean_old_backups()

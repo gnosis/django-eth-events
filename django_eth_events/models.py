@@ -13,4 +13,4 @@ class Daemon(TimeStampedModel, SingletonModel):
 class Block(TimeStampedModel):
     block_number = models.IntegerField()
     block_hash = models.CharField(primary_key=True, max_length=64)
-    decoded_logs = models.TextField(default="[]")
+    decoded_logs = models.TextField(default="{}")

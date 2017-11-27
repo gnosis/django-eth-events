@@ -15,7 +15,7 @@ def check_reorg():
     saved_block_number = Daemon.get_solo().block_number
     current_block_number = web3.eth.blockNumber
 
-    if current_block_number > saved_block_number:
+    if current_block_number >= saved_block_number:
         # check last saved block hash haven't changed
         blocks = Block.objects.all().order_by('-block_number')
         if blocks.count():
@@ -39,7 +39,7 @@ def check_reorg():
             raise NoBackup(message='Not enough backup blocks, reorg cannot be rollback', errors=errors)
 
         else:
-            # first execution, no backup data
+            # No backup data (first execution or no events on last blocks)
             return False, None
     else:
         return False, None
