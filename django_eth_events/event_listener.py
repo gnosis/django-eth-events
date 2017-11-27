@@ -177,10 +177,10 @@ class EventListener(Singleton):
 
                         max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
                         if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
-                            self.backup(block_info['hash'], block_info['number'], decoded_logs, contract['EVENT_DATA_RECEIVER'])
+                            self.backup(remove_0x_head(block_info['hash']), block_info['number'], decoded_logs, contract['EVENT_DATA_RECEIVER'])
 
             # backup block if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
-            Block.objects.get_or_create(block_number=block, block_hash=block_info['hash'])
+            Block.objects.get_or_create(block_number=block, block_hash=remove_0x_head(block_info['hash']))
 
         if len(last_mined_blocks):
             # Update block number after execution

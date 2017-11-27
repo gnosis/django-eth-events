@@ -10,7 +10,7 @@ from django_eth_events.models import Daemon, Block
 from web3 import TestRPCProvider
 from json import loads, dumps
 import os
-from time import sleep
+from ethereum.utils import remove_0x_head
 
 centralized_oracle_bytecode = "6060604052341561000c57fe5b5b6109ad8061001c6000396000f30060606040526000357c01000000000000000000000000000000" \
                               "00000000000000000000000000900463ffffffff1680634e2f220c1461003b575bfe5b341561004357fe5b61009360048080359060" \
@@ -157,7 +157,7 @@ class TestDaemonExec(TestCase):
         self.assertEqual(2, self.web3.eth.blockNumber)
 
         # force block_hash change (cannot recreate a real reorg with python testrpc)
-        block_hash = self.web3.eth.getBlock(1)['hash']
+        block_hash = remove_0x_head(self.web3.eth.getBlock(1)['hash'])
         Block.objects.filter(block_number=1).update(block_hash=block_hash)
 
         self.listener_under_test.execute()
