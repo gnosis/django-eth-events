@@ -4,11 +4,11 @@ from django.utils.module_loading import import_string
 from ethereum.utils import remove_0x_head
 
 from django_eth_events.decoder import Decoder
-from django_eth_events.models import Daemon
+from django_eth_events.models import Daemon, Block
 from django_eth_events.singleton import Singleton
 from django_eth_events.web3_service import Web3Service
 
-from json import dumps
+from json import dumps, loads
 
 logger = get_task_logger(__name__)
 
@@ -91,6 +91,28 @@ class EventListener(Singleton):
         for decoded_log in decoded_logs:
             EventReceiver().save(decoded_event=decoded_log, block_info=block_info)
 
+    def revert_events(self, event_receiver_string, decoded_logs, block_info):
+        EventReceiver = import_string(event_receiver_string)
+        for decoded_log in decoded_logs:
+            EventReceiver().rollback(decoded_event=decoded_log, block_info=block_info)
+
+    def rollback(self, block_number):
+        # get all blocks to rollback
+        blocks = Block.objects.filter(block_number__gt=block_number)
+        logger.info('rolling back {} blocks, until block number {}'.format(blocks.count(), block_number))
+        for block in blocks:
+            decoded_logs = loads(block.decoded_logs)
+            logger.info('rolling back {} block, {} logs'.format(block.block_number, len(decoded_logs)))
+            if len(decoded_logs):
+                for log in decoded_logs:
+                    self.revert_events(log['event_receiver'], log['logs'], block.block_number)
+
+    def backup(self, block_hash, block_number, decoded_logs, event_receiver_string):
+        # Get block or create new one
+        block = Block.objects.get_or_create(block_hash=block_hash)
+
+        
+
     def execute(self):
         # update block number
         # get blocks and decode logs
@@ -125,8 +147,13 @@ class EventListener(Singleton):
 
                     logger.info('{} decoded logs'.format(len(decoded_logs)))
 
-                    # Save events
-                    self.save_events(contract, decoded_logs, block_info)
+                    if len(decoded_logs):
+                        # Save events
+                        self.save_events(contract, decoded_logs, block_info)
+
+                        max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
+                        if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
+                            self.backup(block, decoded_logs, contract['EVENT_DATA_RECEIVER'])
 
         if len(last_mined_blocks):
             # Update block number after execution

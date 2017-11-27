@@ -9,26 +9,39 @@ from BaseHTTPServer import HTTPServer
 from multiprocessing import Process
 from time import sleep
 from django.core.cache import cache
-from django_eth_events.reorgs import check_reorg, NoBackup
+from django_eth_events.reorgs import check_reorg, NoBackup, rollback
 from django_eth_events.models import Block, Daemon
+from django_eth_events.chainevents import AbstractEventReceiver
 
 def start_mock_server():
     server_address = ('127.0.0.1', 8545)
     httpd = HTTPServer(server_address, MockedTestrpc)
     httpd.serve_forever()
-    print 'served internal'
+    print('served internal')
+
+
+
+class DummyEventReceiver(AbstractEventReceiver):
+    def __init__(self, *args, **kwars):
+        super(DummyEventReceiver, self).__init__(args, kwars)
+        self.stage = 'initial'
+    def save(self, decoded_event, block_info):
+        self.stage = 'processed'
+
+    def rollback(self, decoded_event, block_info):
+        self.stage = 'rollback'
 
 
 class TestReorgDetector(TestCase):
 
     def setUp(self):
         # Run mocked testrpc for reorgs
-        print 'Starting httpd...'
+        print('Starting httpd...')
         self.p = Process(target=start_mock_server)
         self.p.start()
         cache.set('block_number', '0x0')
         sleep(1)
-        print 'served'
+        print('served')
         self.rpc = RPCProvider(
             host='127.0.0.1',
             port='8545',
