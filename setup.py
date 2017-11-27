@@ -24,11 +24,10 @@ requirements = [
 
 setup(
     name='django-eth-events',
-    version='0.1',
+    version='1.0',
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
-    license='GPLv3',
     description='A simple Django app to react to Ethereum events.',
     url='https://github.com/gnosis/django-eth-events',
     author='Gnosis',
