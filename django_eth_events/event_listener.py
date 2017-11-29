@@ -107,7 +107,7 @@ class EventListener(Singleton):
 
     def rollback(self, block_number):
         # get all blocks to rollback
-        blocks = Block.objects.filter(block_number__gt=block_number)
+        blocks = Block.objects.filter(block_number__gt=block_number).order_by('-block_number')
         logger.info('rolling back {} blocks, until block number {}'.format(blocks.count(), block_number))
         for block in blocks:
             decoded_logs = loads(block.decoded_logs)
