@@ -88,9 +88,14 @@ class EventListener(Singleton):
         return addresses
 
     def save_events(self, contract, decoded_logs, block_info):
+        saved_events = []
         EventReceiver = import_string(contract['EVENT_DATA_RECEIVER'])
         for decoded_log in decoded_logs:
-            EventReceiver().save(decoded_event=decoded_log, block_info=block_info)
+            instance = EventReceiver().save(decoded_event=decoded_log, block_info=block_info)
+            if instance is not None:
+                saved_events.append(instance)
+
+        return saved_events
 
     def revert_events(self, event_receiver_string, decoded_logs, block_info):
         EventReceiver = import_string(event_receiver_string)
@@ -173,11 +178,13 @@ class EventListener(Singleton):
 
                     if len(decoded_logs):
                         # Save events
-                        self.save_events(contract, decoded_logs, block_info)
+                        saved_events = self.save_events(contract, decoded_logs, block_info)
 
-                        max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-                        if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
-                            self.backup(remove_0x_head(block_info['hash']), block_info['number'], decoded_logs, contract['EVENT_DATA_RECEIVER'])
+                        # Only valid data is saved in backup
+                        if len(saved_events):
+                            max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
+                            if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
+                                self.backup(remove_0x_head(block_info['hash']), block_info['number'], decoded_logs, contract['EVENT_DATA_RECEIVER'])
 
             # backup block if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
             Block.objects.get_or_create(block_number=block, block_hash=remove_0x_head(block_info['hash']))

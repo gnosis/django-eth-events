@@ -69,9 +69,11 @@ centralized_oracles = []
 class CentralizedOraclesReceiver(AbstractEventReceiver):
     def save(self, decoded_event, block_info):
         centralized_oracles.append(decoded_event)
+        return decoded_event
 
     def rollback(self, decoded_event, block_info):
         centralized_oracles.pop()
+
 
 class TestDaemonExec(TestCase):
     def setUp(self):
