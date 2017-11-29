@@ -116,16 +116,17 @@ class EventListener(Singleton):
                 for event_receiver, logs in decoded_logs.iteritems():
                     block_info = {
                         'hash': block.block_hash,
-                        'number': block.block_number
+                        'number': block.block_number,
+                        'timestamp': block.timestamp
                     }
                     self.revert_events(event_receiver, logs, block_info)
 
         # Remove backups from future blocks (old chain)
         blocks.delete()
 
-    def backup(self, block_hash, block_number, decoded_logs, event_receiver_string):
+    def backup(self, block_hash, block_number, timestamp, decoded_logs, event_receiver_string):
         # Get block or create new one
-        block, _ = Block.objects.get_or_create(block_hash=block_hash, defaults={'block_number': block_number})
+        block, _ = Block.objects.get_or_create(block_hash=block_hash, defaults={'block_number': block_number, 'timestamp': timestamp})
 
         saved_logs = loads(block.decoded_logs)
 
@@ -194,10 +195,20 @@ class EventListener(Singleton):
                             if len(saved_events):
                                 max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
                                 if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
-                                    self.backup(remove_0x_head(block_info['hash']), block_info['number'], decoded_logs, contract['EVENT_DATA_RECEIVER'])
+                                    self.backup(
+                                        remove_0x_head(block_info['hash']),
+                                        block_info['number'],
+                                        block_info['timestamp'],
+                                        decoded_logs,
+                                        contract['EVENT_DATA_RECEIVER']
+                                    )
 
                 # backup block if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
-                Block.objects.get_or_create(block_number=block, block_hash=remove_0x_head(block_info['hash']))
+                Block.objects.get_or_create(
+                    block_number=block,
+                    block_hash=remove_0x_head(block_info['hash']),
+                    defaults={'timestamp':block_info['timestamp']}
+                )
 
             if len(last_mined_blocks):
                 # Update block number after execution
