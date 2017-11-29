@@ -114,7 +114,11 @@ class EventListener(Singleton):
             logger.info('rolling back {} block, {} logs'.format(block.block_number, len(decoded_logs)))
             if len(decoded_logs):
                 for event_receiver, logs in decoded_logs.iteritems():
-                    self.revert_events(event_receiver, logs, block.block_number)
+                    block_info = {
+                        'hash': block.block_hash,
+                        'number': block.block_number
+                    }
+                    self.revert_events(event_receiver, logs, block_info)
 
         # Remove backups from future blocks (old chain)
         blocks.delete()
