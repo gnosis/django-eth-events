@@ -140,62 +140,65 @@ class EventListener(Singleton):
         Block.objects.filter(block_number__lt=current_block-max_blocks_backup).delete()
 
     def execute(self):
-        # Check reorg
-        had_reorg, reorg_block_number = check_reorg()
+        # Check daemon status
+        daemon = Daemon.get_solo()
+        if daemon.status == 'EXECUTING':
+            # Check reorg
+            had_reorg, reorg_block_number = check_reorg()
 
-        if had_reorg:
-            self.rollback(reorg_block_number)
+            if had_reorg:
+                self.rollback(reorg_block_number)
 
-        # update block number
-        # get blocks and decode logs
-        last_mined_blocks = self.get_last_mined_blocks()
-        if len(last_mined_blocks):
-            logger.info('{} blocks mined from {} to {}'.format(len(last_mined_blocks), last_mined_blocks[0], last_mined_blocks[-1]))
-        else:
-            logger.info('no blocks mined')
-        for block in last_mined_blocks:
-            # first get un-decoded logs and the block info
-            logs, block_info = self.get_logs(block)
-            logger.info('got {} logs in block {}'.format(len(logs), block_info['number']))
+            # update block number
+            # get blocks and decode logs
+            last_mined_blocks = self.get_last_mined_blocks()
+            if len(last_mined_blocks):
+                logger.info('{} blocks mined from {} to {}'.format(len(last_mined_blocks), last_mined_blocks[0], last_mined_blocks[-1]))
+            else:
+                logger.info('no blocks mined')
+            for block in last_mined_blocks:
+                # first get un-decoded logs and the block info
+                logs, block_info = self.get_logs(block)
+                logger.info('got {} logs in block {}'.format(len(logs), block_info['number']))
 
-            ###########################
-            # Decode logs #
-            ###########################
-            if len(logs):
-                for contract in self.contract_map:
-                    # Add ABI
-                    self.decoder.add_abi(contract['EVENT_ABI'])
+                ###########################
+                # Decode logs #
+                ###########################
+                if len(logs):
+                    for contract in self.contract_map:
+                        # Add ABI
+                        self.decoder.add_abi(contract['EVENT_ABI'])
 
-                    # Get watched contract addresses
-                    watched_addresses = self.get_watched_contract_addresses(contract)
+                        # Get watched contract addresses
+                        watched_addresses = self.get_watched_contract_addresses(contract)
 
-                    # Filter logs by relevant addresses
-                    target_logs = [log for log in logs if remove_0x_head(log['address']) in watched_addresses]
+                        # Filter logs by relevant addresses
+                        target_logs = [log for log in logs if remove_0x_head(log['address']) in watched_addresses]
 
-                    logger.info('{} logs'.format(len(target_logs)))
+                        logger.info('{} logs'.format(len(target_logs)))
 
-                    # Decode logs
-                    decoded_logs = self.decoder.decode_logs(target_logs)
+                        # Decode logs
+                        decoded_logs = self.decoder.decode_logs(target_logs)
 
-                    logger.info('{} decoded logs'.format(len(decoded_logs)))
+                        logger.info('{} decoded logs'.format(len(decoded_logs)))
 
-                    if len(decoded_logs):
-                        # Save events
-                        saved_events = self.save_events(contract, decoded_logs, block_info)
+                        if len(decoded_logs):
+                            # Save events
+                            saved_events = self.save_events(contract, decoded_logs, block_info)
 
-                        # Only valid data is saved in backup
-                        if len(saved_events):
-                            max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-                            if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
-                                self.backup(remove_0x_head(block_info['hash']), block_info['number'], decoded_logs, contract['EVENT_DATA_RECEIVER'])
+                            # Only valid data is saved in backup
+                            if len(saved_events):
+                                max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
+                                if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
+                                    self.backup(remove_0x_head(block_info['hash']), block_info['number'], decoded_logs, contract['EVENT_DATA_RECEIVER'])
 
-            # backup block if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
-            Block.objects.get_or_create(block_number=block, block_hash=remove_0x_head(block_info['hash']))
+                # backup block if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
+                Block.objects.get_or_create(block_number=block, block_hash=remove_0x_head(block_info['hash']))
 
-        if len(last_mined_blocks):
-            # Update block number after execution
-            logger.info('update daemon block_number={}'.format(last_mined_blocks[-1]))
-            self.update_block_number(last_mined_blocks[-1])
+            if len(last_mined_blocks):
+                # Update block number after execution
+                logger.info('update daemon block_number={}'.format(last_mined_blocks[-1]))
+                self.update_block_number(last_mined_blocks[-1])
 
-            # Remove older backups
-            self.clean_old_backups()
+                # Remove older backups
+                self.clean_old_backups()
