@@ -48,6 +48,8 @@ def event_listener():
             except Exception as err:
                 logger.error(str(err))
                 daemon = Daemon.get_solo()
+                daemon.status = 'HALTED'
+                daemon.save()
                 # get last error block number database
                 last_error_block_number = daemon.last_error_block_number
                 # get current block number from database
