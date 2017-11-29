@@ -67,7 +67,10 @@ class EventListener(Singleton):
 
         if block and block.get(u'hash'):
             for tx in block[u'transactions']:
+                # receipt sometimes is none with Geth nodes, we retry in case of none
                 receipt = self.web3.eth.getTransactionReceipt(tx)
+                if receipt is None:
+                    receipt = self.web3.eth.getTransactionReceipt(tx)
                 if receipt.get('logs'):
                     logs.extend(receipt[u'logs'])
             return logs, block
