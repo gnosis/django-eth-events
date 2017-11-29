@@ -124,6 +124,11 @@ class EventListener(Singleton):
         # Remove backups from future blocks (old chain)
         blocks.delete()
 
+        # set daemon block_number to current one
+        daemon = Daemon.get_solo()
+        daemon.block_number = block_number
+        daemon.save()
+
     def backup(self, block_hash, block_number, timestamp, decoded_logs, event_receiver_string):
         # Get block or create new one
         block, _ = Block.objects.get_or_create(block_hash=block_hash, defaults={'block_number': block_number, 'timestamp': timestamp})
