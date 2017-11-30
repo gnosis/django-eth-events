@@ -208,7 +208,7 @@ class TestReorgDetector(TestCase):
         (had_reorg, block_number) = check_reorg()
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 0)
-        
+
     def tearDown(self):
         self.p.terminate()
         self.p = None
