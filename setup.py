@@ -5,22 +5,10 @@ from setuptools import find_packages, setup
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 
-requirements = [
-    'six==1.10.0',
-    'bitcoin==1.1.42',
-    'celery==4.1.0',
-    'Django==1.11',
-    'django-authtools==1.5.0',
-    'django-model-utils==2.6.1',
-    'django-solo==1.1.2',
-    'ethereum==1.6.1',
-    'ethereum-abi-utils==0.4.0',
-    'ethereum-utils==0.2.0',
-    'factory-boy==2.5.2',
-    'web3==3.7.1',
-    'kombu==4.1.0',
-    'django-filter==1.0.4'
-]
+def get_requirements():
+    return open('requirements.txt', 'r').read().splitlines()
+
+requirements = get_requirements()
 
 setup(
     name='django-eth-events',
