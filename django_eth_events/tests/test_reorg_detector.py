@@ -20,7 +20,6 @@ def start_mock_server():
     print('served internal')
 
 
-
 class DummyEventReceiver(AbstractEventReceiver):
     def __init__(self, *args, **kwars):
         super(DummyEventReceiver, self).__init__(args, kwars)
@@ -184,16 +183,32 @@ class TestReorgDetector(TestCase):
         self.assertFalse(had_reorg)
 
     def test_reorg_block_number_decreased(self):
-        # block number of the node is lower than the one saved, maybe node changed manually, sync issues, skip
+        # block number of the node is lower than the one saved, we trust the node, we rollback to the common block
         # Last block hash haven't changed
         block_hash_0 = '{:040d}'.format(0)
         cache.set('0x0', block_hash_0)
         cache.set('block_number', '0x1')
-        Block.objects.create(block_hash='doesnt matter', block_number=0, timestamp=0)
+        Block.objects.create(block_hash='wrong block', block_number=0, timestamp=0)
         Daemon.objects.all().update(block_number=3)
-        (had_reorg, _) = check_reorg()
-        self.assertFalse(had_reorg)
+        # No common block
+        self.assertRaises(NoBackup, check_reorg)
 
+        Block.objects.filter(block_number=0).update(block_hash=block_hash_0)
+
+        block_hash_1 = '{:040d}'.format(1)
+        cache.set('0x1', block_hash_1)
+        cache.set('block_number', '0x2')
+        Block.objects.create(block_hash=block_hash_1, block_number=1, timestamp=0)
+        (had_reorg, block_number) = check_reorg()
+        self.assertTrue(had_reorg)
+        self.assertEqual(block_number, 1)
+
+        cache.set('0x1', 'reorg_hash')
+
+        (had_reorg, block_number) = check_reorg()
+        self.assertTrue(had_reorg)
+        self.assertEqual(block_number, 0)
+        
     def tearDown(self):
         self.p.terminate()
         self.p = None
