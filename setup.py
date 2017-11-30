@@ -5,14 +5,22 @@ from setuptools import find_packages, setup
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 
-def get_requirements():
-    return open('requirements.txt', 'r').read().splitlines()
-
-requirements = get_requirements()
+requirements = [
+    "six==1.10.0",
+    "bitcoin==1.1.42",
+    "celery==4.1.0",
+    "Django==1.11",
+    "django-solo==1.1.2",
+    "ethereum==1.6.1",
+    "ethereum-abi-utils==0.4.0",
+    "ethereum-utils==0.2.0",
+    "kombu==4.1.0",
+    "web3[tester]==3.7.1"
+]
 
 setup(
     name='django-eth-events',
-    version='1.0.13',
+    version='1.0.14',
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
