@@ -1,0 +1,7 @@
+language: python
+dist: trusty
+before_install:
+- export PYTHONPATH="$HOME/build/gnosis/django_eth_events"
+- export PIP_USE_MIRRORS=true
+script:
+- python django_eth_events/manage.py test
