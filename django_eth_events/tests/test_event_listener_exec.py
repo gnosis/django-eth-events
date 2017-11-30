@@ -165,5 +165,4 @@ class TestDaemonExec(TestCase):
         self.listener_under_test.execute()
         self.assertEqual(len(centralized_oracles), 0)
         self.assertEqual(2, Daemon.get_solo().block_number)
-        self.assertEqual(1, Block.objects.all().count())
-        self.assertEqual(1, Block.objects.all()[0].block_number)
+        self.assertEqual(2, Block.objects.all().count())
