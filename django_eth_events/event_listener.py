@@ -113,7 +113,10 @@ class EventListener(Singleton):
             decoded_logs = loads(block.decoded_logs)
             logger.info('rolling back {} block, {} logs'.format(block.block_number, len(decoded_logs)))
             if len(decoded_logs):
-                for event_receiver, logs in decoded_logs.iteritems():
+                # We loop decoded logs on inverse order because there might be dependencies inside the same block
+                # And must be processed from last applied to first applied
+                for event_receiver in reversed(decoded_logs.keys()):
+                    logs = decoded_logs[event_receiver]
                     block_info = {
                         'hash': block.block_hash,
                         'number': block.block_number,
