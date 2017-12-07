@@ -100,10 +100,10 @@ class EventListener(Singleton):
 
         return saved_events
 
-    def revert_events(self, event_receiver_string, decoded_logs, block_info):
+    def revert_events(self, event_receiver_string, decoded_events, block_info):
         EventReceiver = import_string(event_receiver_string)
-        for decoded_log in decoded_logs:
-            EventReceiver().rollback(decoded_event=decoded_log, block_info=block_info)
+        for event in reversed(decoded_events):
+            EventReceiver().rollback(decoded_event=event, block_info=block_info)
 
     def rollback(self, block_number):
         # get all blocks to rollback
@@ -115,14 +115,14 @@ class EventListener(Singleton):
             if len(decoded_logs):
                 # We loop decoded logs on inverse order because there might be dependencies inside the same block
                 # And must be processed from last applied to first applied
-                for event_receiver in reversed(decoded_logs.keys()):
-                    logs = decoded_logs[event_receiver]
+                for event in reversed(decoded_logs):
+                    events = event['events']
                     block_info = {
                         'hash': block.block_hash,
                         'number': block.block_number,
                         'timestamp': block.timestamp
                     }
-                    self.revert_events(event_receiver, logs, block_info)
+                    self.revert_events(event['event_receiver'], events, block_info)
 
         # Remove backups from future blocks (old chain)
         blocks.delete()
@@ -132,16 +132,12 @@ class EventListener(Singleton):
         daemon.block_number = block_number
         daemon.save()
 
-    def backup(self, block_hash, block_number, timestamp, decoded_logs, event_receiver_string):
+    def backup(self, block_hash, block_number, timestamp, decoded_events, event_receiver_string):
         # Get block or create new one
         block, _ = Block.objects.get_or_create(block_hash=block_hash, defaults={'block_number': block_number, 'timestamp': timestamp})
 
         saved_logs = loads(block.decoded_logs)
-
-        if saved_logs.get(event_receiver_string) is None:
-            saved_logs[event_receiver_string] = []
-
-        saved_logs[event_receiver_string].extend(decoded_logs)
+        saved_logs.append({'event_receiver': event_receiver_string, 'events':decoded_events})
 
         block.decoded_logs = dumps(saved_logs)
         block.save()
