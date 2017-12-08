@@ -66,13 +66,19 @@ class EventListener(Singleton):
         :param block_number:
         :return:
         """
-        block = self.web3.eth.getBlock(block_number)
+        try:
+            block = self.web3.eth.getBlock(block_number)
+        except:
+            raise UnknownBlock
         logs = []
 
         if block and block.get(u'hash'):
             for tx in block[u'transactions']:
                 # receipt sometimes is none, might be because a reorg, we exit the loop with a controlled exeception
-                receipt = self.web3.eth.getTransactionReceipt(tx)
+                try:
+                    receipt = self.web3.eth.getTransactionReceipt(tx)
+                except:
+                    raise UnknownTransaction
                 if receipt is None:
                     raise UnknownTransaction
                 if receipt.get('logs'):
