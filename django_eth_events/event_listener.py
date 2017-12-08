@@ -17,6 +17,9 @@ logger = get_task_logger(__name__)
 class UnknownBlock(Exception):
     pass
 
+class UnknownTransaction(Exception):
+    pass
+
 
 class EventListener(Singleton):
 
@@ -38,7 +41,7 @@ class EventListener(Singleton):
         daemon = Daemon.get_solo()
         current = self.web3.eth.blockNumber
 
-        logger.info('no blocks mined, daemon: {} current: {}'.format(daemon.block_number, current))
+        logger.info('blocks mined, daemon: {} current: {}'.format(daemon.block_number, current))
         if daemon.block_number < current:
             max_blocks_to_process = int(getattr(settings, 'ETH_PROCESS_BLOCKS', '10000'))
             if current - daemon.block_number > max_blocks_to_process:
@@ -67,10 +70,10 @@ class EventListener(Singleton):
 
         if block and block.get(u'hash'):
             for tx in block[u'transactions']:
-                # receipt sometimes is none with Geth nodes, we retry in case of none
+                # receipt sometimes is none, might be because a reorg, we exit the loop with a controlled exeception
                 receipt = self.web3.eth.getTransactionReceipt(tx)
                 if receipt is None:
-                    receipt = self.web3.eth.getTransactionReceipt(tx)
+                    raise UnknownTransaction
                 if receipt.get('logs'):
                     logs.extend(receipt[u'logs'])
             return logs, block
@@ -90,20 +93,14 @@ class EventListener(Singleton):
             raise LookupError("Could not retrieve watched addresses for contract {}".format(contract))
         return addresses
 
-    def save_events(self, contract, decoded_logs, block_info):
-        saved_events = []
+    def save_event(self, contract, decoded_log, block_info):
         EventReceiver = import_string(contract['EVENT_DATA_RECEIVER'])
-        for decoded_log in decoded_logs:
-            instance = EventReceiver().save(decoded_event=decoded_log, block_info=block_info)
-            if instance is not None:
-                saved_events.append(instance)
+        instance = EventReceiver().save(decoded_event=decoded_log, block_info=block_info)
+        return instance
 
-        return saved_events
-
-    def revert_events(self, event_receiver_string, decoded_events, block_info):
+    def revert_events(self, event_receiver_string, decoded_event, block_info):
         EventReceiver = import_string(event_receiver_string)
-        for event in reversed(decoded_events):
-            EventReceiver().rollback(decoded_event=event, block_info=block_info)
+        EventReceiver().rollback(decoded_event=decoded_event, block_info=block_info)
 
     def rollback(self, block_number):
         # get all blocks to rollback
@@ -115,14 +112,14 @@ class EventListener(Singleton):
             if len(decoded_logs):
                 # We loop decoded logs on inverse order because there might be dependencies inside the same block
                 # And must be processed from last applied to first applied
-                for event in reversed(decoded_logs):
-                    events = event['events']
+                for log in reversed(decoded_logs):
+                    event = log['event']
                     block_info = {
                         'hash': block.block_hash,
                         'number': block.block_number,
                         'timestamp': block.timestamp
                     }
-                    self.revert_events(event['event_receiver'], events, block_info)
+                    self.revert_events(log['event_receiver'], event, block_info)
 
         # Remove backups from future blocks (old chain)
         blocks.delete()
@@ -132,12 +129,12 @@ class EventListener(Singleton):
         daemon.block_number = block_number
         daemon.save()
 
-    def backup(self, block_hash, block_number, timestamp, decoded_events, event_receiver_string):
+    def backup(self, block_hash, block_number, timestamp, decoded_event, event_receiver_string):
         # Get block or create new one
         block, _ = Block.objects.get_or_create(block_hash=block_hash, defaults={'block_number': block_number, 'timestamp': timestamp})
 
         saved_logs = loads(block.decoded_logs)
-        saved_logs.append({'event_receiver': event_receiver_string, 'events':decoded_events})
+        saved_logs.append({'event_receiver': event_receiver_string, 'event':decoded_event})
 
         block.decoded_logs = dumps(saved_logs)
         block.save()
@@ -192,20 +189,21 @@ class EventListener(Singleton):
                         logger.info('{} decoded logs'.format(len(decoded_logs)))
 
                         if len(decoded_logs):
-                            # Save events
-                            saved_events = self.save_events(contract, decoded_logs, block_info)
+                            for log in decoded_logs:
+                                # Save events
+                                instance = self.save_event(contract, log, block_info)
 
-                            # Only valid data is saved in backup
-                            if len(saved_events):
-                                max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-                                if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
-                                    self.backup(
-                                        remove_0x_head(block_info['hash']),
-                                        block_info['number'],
-                                        block_info['timestamp'],
-                                        decoded_logs,
-                                        contract['EVENT_DATA_RECEIVER']
-                                    )
+                                # Only valid data is saved in backup
+                                if instance is not None:
+                                    max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
+                                    if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
+                                        self.backup(
+                                            remove_0x_head(block_info['hash']),
+                                            block_info['number'],
+                                            block_info['timestamp'],
+                                            log,
+                                            contract['EVENT_DATA_RECEIVER']
+                                        )
 
                 # TODO refactor to be faster
                 daemon = Daemon.get_solo()

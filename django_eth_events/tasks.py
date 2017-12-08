@@ -1,5 +1,5 @@
 from celery import shared_task
-from django_eth_events.event_listener import EventListener
+from django_eth_events.event_listener import EventListener, UnknownBlock, UnknownTransaction
 from celery.utils.log import get_task_logger
 from celery.five import monotonic
 from contextlib import contextmanager
@@ -45,6 +45,10 @@ def event_listener():
             bot = EventListener()
             try:
                 bot.execute()
+            except UnknownTransaction:
+                logger.error('Unknown Transaction hash, might be a reorg')
+            except UnknownBlock:
+                logger.error('Unknown Block hash, might be a reorg')
             except Exception as err:
                 logger.error(str(err))
                 daemon = Daemon.get_solo()
