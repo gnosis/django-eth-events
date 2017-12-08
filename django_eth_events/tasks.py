@@ -56,6 +56,7 @@ def event_listener():
                 daemon.save()
         finally:
             logger.info('Releasing LOCK')
+            daemon = Daemon.get_solo()
             daemon.listener_lock = False
             daemon.save()
 
