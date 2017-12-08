@@ -15,7 +15,7 @@ class Daemon(TimeStampedModel, SingletonModel):
     block_number = models.IntegerField(default=0)
     last_error_block_number = models.IntegerField(default=0)
     status = models.CharField(max_length=9, choices=STATUS_CHOICES, default='EXECUTING')
-
+    listener_lock = models.BooleanField(default=False)
 
 class Block(TimeStampedModel):
     block_number = models.IntegerField()

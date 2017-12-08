@@ -1,7 +1,7 @@
 from celery import shared_task
 from django_eth_events.event_listener import EventListener, UnknownBlock, UnknownTransaction
 from celery.utils.log import get_task_logger
-from celery.five import monotonic
+from django.db import transaction
 from contextlib import contextmanager
 from django.conf import settings
 from django.core.cache import cache
@@ -12,26 +12,6 @@ import traceback
 
 logger = get_task_logger(__name__)
 
-oid = 'LOCK'
-
-
-@contextmanager
-def cache_lock(lock_id, oid):
-    timeout_at = monotonic() + settings.CELERY_LOCK_EXPIRE
-    # cache.add fails if the key already exists
-    status = cache.add(lock_id, oid, settings.CELERY_LOCK_EXPIRE)
-    try:
-        yield status
-    finally:
-        # memcache delete is very slow, but we have to use it to take
-        # advantage of using add() for atomic locking
-        if monotonic() < timeout_at:
-            # don't release the lock if we exceeded the timeout
-            # to lessen the chance of releasing an expired lock
-            # owned by someone else.
-            cache.delete(lock_id)
-
-
 def send_email(message):
     logger.info('Sending email with text: {}'.format(message))
     # send email
@@ -40,8 +20,15 @@ def send_email(message):
 
 @shared_task
 def event_listener():
-    with cache_lock('eth_events', oid) as acquired:
-        if acquired:
+    with transaction.atomic():
+        daemon = Daemon.get_solo()
+        locked = daemon.listener_lock
+        if locked:
+            logger.debug(
+                'LOCK already being imported by another worker')
+        else:
+            daemon.listener_lock = True
+            daemon.save()
             bot = EventListener()
             try:
                 bot.execute()
@@ -66,6 +53,10 @@ def event_listener():
                     # save block number into cache
                     daemon.last_error_block_number = current_block_number
                     daemon.save()
+            finally:
+                logger.info('Releasing LOCK')
+                daemon.listener_lock = False
+                daemon.save()
 
 
 
