@@ -17,6 +17,7 @@ logger = get_task_logger(__name__)
 class UnknownBlock(Exception):
     pass
 
+
 class UnknownTransaction(Exception):
     pass
 

@@ -3,6 +3,9 @@ from web3_service import Web3Service
 from ethereum.utils import remove_0x_head
 
 
+class UnknownBlockReorg(Exception):
+    pass
+
 class NoBackup(Exception):
     def __init__(self, message, errors):
         super(NoBackup, self).__init__(message)
@@ -48,7 +51,10 @@ def check_reorg():
         if blocks.count():
             # check if there was reorg
             for block in blocks:
-                node_block_hash = remove_0x_head(web3.eth.getBlock(block.block_number)['hash'])
+                try:
+                    node_block_hash = remove_0x_head(web3.eth.getBlock(block.block_number)['hash'])
+                except:
+                    raise UnknownBlockReorg
                 if block.block_hash == node_block_hash:
                     # if is last saved block, no reorg
                     if block.block_number == saved_block_number:
