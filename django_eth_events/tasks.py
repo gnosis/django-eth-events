@@ -19,7 +19,7 @@ def send_email(message):
 @shared_task
 def event_listener():
     with transaction.atomic():
-        daemon = Daemon.get_solo()
+        daemon = Daemon.objects.select_for_update().first()
         locked = daemon.listener_lock
         if not locked:
             logger.debug(
@@ -58,7 +58,7 @@ def event_listener():
                 daemon.save()
         finally:
             logger.info('Releasing LOCK')
-            daemon = Daemon.get_solo()
+            daemon = Daemon.objects.select_for_update().first()
             daemon.listener_lock = False
             daemon.save()
 

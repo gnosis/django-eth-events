@@ -20,7 +20,7 @@ requirements = [
 
 setup(
     name='django-eth-events',
-    version='1.0.24',
+    version='1.0.25',
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
