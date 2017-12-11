@@ -58,9 +58,10 @@ def event_listener():
                 daemon.save()
         finally:
             logger.info('Releasing LOCK')
-            daemon = Daemon.objects.select_for_update().first()
-            daemon.listener_lock = False
-            daemon.save()
+            with transaction.atomic():
+                daemon = Daemon.objects.select_for_update().first()
+                daemon.listener_lock = False
+                daemon.save()
 
 
 
