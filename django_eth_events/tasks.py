@@ -21,13 +21,15 @@ def event_listener():
     with transaction.atomic():
         daemon = Daemon.get_solo()
         locked = daemon.listener_lock
-
+        if not locked:
+            logger.debug(
+                'LOCK acquired')
+            daemon.listener_lock = True
+            daemon.save()
     if locked:
         logger.debug(
             'LOCK already being imported by another worker')
     else:
-        daemon.listener_lock = True
-        daemon.save()
         bot = EventListener()
         try:
             bot.execute()
