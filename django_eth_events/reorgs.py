@@ -1,6 +1,7 @@
 from django_eth_events.models import Daemon, Block
 from web3_service import Web3Service
 from ethereum.utils import remove_0x_head
+from memory_profiler import profile
 
 
 class UnknownBlockReorg(Exception):
@@ -14,6 +15,7 @@ class NoBackup(Exception):
         self.errors = errors
 
 
+@profile
 def check_reorg():
     web3 = Web3Service().web3
     saved_block_number = Daemon.get_solo().block_number
