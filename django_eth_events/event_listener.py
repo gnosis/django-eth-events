@@ -10,6 +10,7 @@ from django_eth_events.web3_service import Web3Service
 from django_eth_events.reorgs import check_reorg
 
 from json import dumps, loads
+from memory_profiler import profile
 
 logger = get_task_logger(__name__)
 
@@ -152,6 +153,7 @@ class EventListener(Singleton):
 
         Block.objects.filter(block_number__lt=current_block-max_blocks_backup).delete()
 
+    @profile
     def execute(self):
         # Check daemon status
         daemon = Daemon.get_solo()
