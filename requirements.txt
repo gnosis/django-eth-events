@@ -13,3 +13,4 @@ kombu==4.1.0
 django_filters
 django-filter==1.0.4
 web3[tester]==3.7.1
+memory_profiler==0.50.0

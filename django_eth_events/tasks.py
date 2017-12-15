@@ -6,7 +6,7 @@ from django.core.mail import mail_admins
 from django_eth_events.models import Daemon
 import traceback
 from reorgs import UnknownBlockReorg
-
+from memory_profiler import profile
 logger = get_task_logger(__name__)
 
 
@@ -16,6 +16,7 @@ def send_email(message):
     mail_admins('[ETH Events Error] ', message)
 
 
+@profile
 @shared_task
 def event_listener():
     with transaction.atomic():
@@ -62,7 +63,3 @@ def event_listener():
                 daemon = Daemon.objects.select_for_update().first()
                 daemon.listener_lock = False
                 daemon.save()
-
-
-
-
