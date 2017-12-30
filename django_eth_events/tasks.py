@@ -5,7 +5,9 @@ from django.db import transaction
 from django.core.mail import mail_admins
 from django_eth_events.models import Daemon
 from reorgs import UnknownBlockReorg
-from urllib3.connection import ConnectionError, HTTPConnection
+from urllib3.exceptions import (
+    HTTPError, PoolError, LocationValueError
+)
 import traceback
 import errno
 
@@ -47,7 +49,8 @@ def event_listener():
                 or err.errno == errno.ECONNRESET \
                 or err.errno == errno.ECONNREFUSED):
                 logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
-            elif isinstance(err, ConnectionError) or isinstance(err, HTTPConnection):
+            elif isinstance(err, HTTPError) or isinstance(err, PoolError) \
+                or isinstance(err, LocationValueError):
                 logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
             else:
                 logger.error("Halting system due to error {}".format(str(err)))
