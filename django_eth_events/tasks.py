@@ -8,6 +8,7 @@ from reorgs import UnknownBlockReorg
 from urllib3.exceptions import (
     HTTPError, PoolError, LocationValueError
 )
+from requests.exceptions import RequestException
 import traceback
 import errno
 
@@ -50,7 +51,7 @@ def event_listener():
                 or err.errno == errno.ECONNREFUSED):
                 logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
             elif isinstance(err, HTTPError) or isinstance(err, PoolError) \
-                or isinstance(err, LocationValueError):
+                or isinstance(err, LocationValueError) or isinstance(err, RequestException):
                 logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
             else:
                 logger.error("Halting system due to error {}".format(str(err)))
