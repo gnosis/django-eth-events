@@ -4,8 +4,10 @@ from celery.utils.log import get_task_logger
 from django.db import transaction
 from django.core.mail import mail_admins
 from django_eth_events.models import Daemon
-import traceback
 from reorgs import UnknownBlockReorg
+from urllib3.connection import ConnectionError, HTTPConnection
+import traceback
+import errno
 
 logger = get_task_logger(__name__)
 
@@ -40,29 +42,33 @@ def event_listener():
         except UnknownBlockReorg:
             logger.error('Unknown Block hash, might be a reorg')
         except Exception as err:
-            logger.error(str(err))
-            daemon = Daemon.get_solo()
-            daemon.status = 'HALTED'
-            daemon.save()
-            # get last error block number database
-            last_error_block_number = daemon.last_error_block_number
-            # get current block number from database
-            current_block_number = daemon.block_number
-            logger.info("Current block number: {}, Last error block number: {}".format(
-                current_block_number, last_error_block_number
-            ))
-            if last_error_block_number < current_block_number:
-                send_email(traceback.format_exc())
-                # save block number into cache
-                daemon.last_error_block_number = current_block_number
+            # Not halting system for connection error cases
+            if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED \
+                or err.errno == errno.ECONNRESET \
+                or err.errno == errno.ECONNREFUSED):
+                logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
+            elif isinstance(err, ConnectionError) or isinstance(err, HTTPConnection):
+                logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
+            else:
+                logger.error("Halting system due to error {}".format(str(err)))
+                daemon = Daemon.get_solo()
+                daemon.status = 'HALTED'
                 daemon.save()
+                # get last error block number database
+                last_error_block_number = daemon.last_error_block_number
+                # get current block number from database
+                current_block_number = daemon.block_number
+                logger.info("Current block number: {}, Last error block number: {}".format(
+                    current_block_number, last_error_block_number
+                ))
+                if last_error_block_number < current_block_number:
+                    send_email(traceback.format_exc())
+                    # save block number into cache
+                    daemon.last_error_block_number = current_block_number
+                    daemon.save()
         finally:
             logger.info('Releasing LOCK')
             with transaction.atomic():
                 daemon = Daemon.objects.select_for_update().first()
                 daemon.listener_lock = False
                 daemon.save()
-
-
-
-
