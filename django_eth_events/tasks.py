@@ -1,10 +1,10 @@
 from celery import shared_task
-from django_eth_events.event_listener import EventListener, UnknownBlock, UnknownTransaction
 from celery.utils.log import get_task_logger
 from django.db import transaction
 from django.core.mail import mail_admins
+from django_eth_events.event_listener import EventListener, UnknownBlock, UnknownTransaction
 from django_eth_events.models import Daemon
-from reorgs import UnknownBlockReorg
+from django_eth_events.reorgs import UnknownBlockReorg
 from urllib3.exceptions import (
     HTTPError, PoolError, LocationValueError
 )

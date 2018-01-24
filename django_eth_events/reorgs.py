@@ -1,5 +1,5 @@
 from django_eth_events.models import Daemon, Block
-from web3_service import Web3Service
+from django_eth_events.web3_service import Web3Service
 from ethereum.utils import remove_0x_head
 
 
