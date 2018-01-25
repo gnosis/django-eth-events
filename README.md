@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/gnosis/django-eth-events.svg?branch=master)](https://travis-ci.org/gnosis/django-eth-events)
+[![Coverage Status](https://coveralls.io/repos/github/gnosis/django-eth-events/badge.svg?branch=feature%2Ftravis)](https://coveralls.io/github/gnosis/django-eth-events?branch=feature%2Ftravis)
+
 # django_eth_events
 A standalone Django app for decoding Ethereum events compatible with Python 2.7 and 3.x
 
@@ -44,4 +47,16 @@ ETH_EVENTS = [
 Take a look at GnosisDB repository and check out the full documentation: [link](https://github.com/gnosis/gnosisdb).
 
 # Tests
-You can launch tests using `python runtests.py`. No additional services are required.
+You can launch tests using `python runtests.py`. No additional services are required. 
+
+Django tests can also be used
+```
+export DJANGO_SETTINGS_MODULE=settings.test
+export PYTHONPATH="/folder/to/project/django-eth-events"
+python django_eth_events/manage.py test
+```
+
+Coverage can be run using _coverage_ tool:
+```
+coverage run --source=django_eth_events django_eth_events/manage.py test
+```
