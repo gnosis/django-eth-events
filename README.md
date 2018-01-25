@@ -1,14 +1,14 @@
 # django_eth_events
-A standalone Django app for decoding Ethereum events.
+A standalone Django app for decoding Ethereum events compatible with Python 2.7 and 3.x
 
 # Setup
 If you want to install the latest stable release from PyPi:
 
-```$ pip install django-eth-events```
+`$ pip install django-eth-events`
 
 If you want to install the latest development version from GitHub:
 
-```$ pip install -e git+https://github.com/gnosis/django-eth-events.git#egg=Package```
+`$ pip install -e git+https://github.com/gnosis/django-eth-events.git#egg=Package`
 
 Add django_eth_events to your INSTALLED_APPS:
 
@@ -41,4 +41,7 @@ ETH_EVENTS = [
 ]
 ```
 
-Take a look at GnosisDB repository and check out the full documentation: [link](https://github.com/gnosis/gnosisdb/blob/master/README.md).
+Take a look at GnosisDB repository and check out the full documentation: [link](https://github.com/gnosis/gnosisdb).
+
+# Tests
+You can launch tests using `python runtests.py`. No additional services are required.
