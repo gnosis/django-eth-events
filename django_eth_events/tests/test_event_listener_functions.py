@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from django.test import TestCase
 from django_eth_events.factories import DaemonFactory
 from django_eth_events.event_listener import EventListener
-from ethereum.utils import remove_0x_head
+from django_eth_events.utils import remove_0x_head
 from web3 import TestRPCProvider
 from json import loads
 
@@ -168,15 +168,15 @@ class TestDaemon(TestCase):
         self.rpc = None
 
     def test_next_block(self):
-        self.assertListEqual(self.bot.get_last_mined_blocks(), [])
+        self.assertListEqual(list(self.bot.get_last_mined_blocks()), [])
         factory = self.bot.web3.eth.contract(abi, bytecode=bin_hex)
         tx_hash = factory.deploy()
         self.bot.web3.eth.getTransactionReceipt(tx_hash)
         tx_hash2 = factory.deploy()
         self.bot.web3.eth.getTransactionReceipt(tx_hash2)
-        self.assertEquals(self.bot.get_last_mined_blocks(), [1])
+        self.assertEquals(list(self.bot.get_last_mined_blocks()), [1])
         self.bot.update_block_number(1)
-        self.assertEquals(self.bot.get_last_mined_blocks(), [])
+        self.assertEquals(list(self.bot.get_last_mined_blocks()), [])
 
     def test_load_abis(self):
         self.assertIsNotNone(self.bot.decoder)
@@ -218,9 +218,9 @@ class TestDaemon(TestCase):
         tx_hash = factory_instance.transact().create(owners, required_confirmations, daily_limit)
         receipt = self.bot.web3.eth.getTransactionReceipt(tx_hash)
         self.assertIsNotNone(receipt)
-        self.assertListEqual(self.bot.get_last_mined_blocks(), [1])
+        self.assertListEqual(list(self.bot.get_last_mined_blocks()), [1])
         self.bot.update_block_number(1)
-        self.assertListEqual(self.bot.get_last_mined_blocks(), [])
+        self.assertListEqual(list(self.bot.get_last_mined_blocks()), [])
         logs, block_info = self.bot.get_logs(1)
         self.assertEqual(2, len(logs))
         decoded = self.bot.decoder.decode_logs(logs)

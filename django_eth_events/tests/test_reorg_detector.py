@@ -2,16 +2,22 @@
 from __future__ import unicode_literals
 from django.test import TestCase
 from web3 import RPCProvider
-from django_eth_events.factories import DaemonFactory
-from django_eth_events.web3_service import Web3Service
-from .mocked_testrpc_reorg import MockedTestrpc
-from BaseHTTPServer import HTTPServer
 from multiprocessing import Process
 from time import sleep
 from django.core.cache import cache
-from django_eth_events.reorgs import check_reorg, NoBackup
-from django_eth_events.models import Block, Daemon
+from .mocked_testrpc_reorg import MockedTestrpc
 from django_eth_events.chainevents import AbstractEventReceiver
+from django_eth_events.factories import DaemonFactory
+from django_eth_events.models import Block, Daemon
+from django_eth_events.reorgs import check_reorg, NoBackup
+from django_eth_events.web3_service import Web3Service
+
+# Python 2 and 3
+try:
+    from BaseHTTPServer import HTTPServer
+except ImportError:
+    from http.server import HTTPServer
+
 
 def start_mock_server():
     server_address = ('127.0.0.1', 8545)
@@ -24,6 +30,7 @@ class DummyEventReceiver(AbstractEventReceiver):
     def __init__(self, *args, **kwars):
         super(DummyEventReceiver, self).__init__(args, kwars)
         self.stage = 'initial'
+
     def save(self, decoded_event, block_info):
         self.stage = 'processed'
 

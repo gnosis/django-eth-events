@@ -1,13 +1,14 @@
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.utils.module_loading import import_string
-from ethereum.utils import remove_0x_head
+from django_eth_events.utils import remove_0x_head
 
 from django_eth_events.decoder import Decoder
 from django_eth_events.models import Daemon, Block
 from django_eth_events.singleton import Singleton
 from django_eth_events.web3_service import Web3Service
 from django_eth_events.reorgs import check_reorg
+from django_eth_events.utils import JsonBytesEncoder
 
 from json import dumps, loads
 
@@ -136,14 +137,19 @@ class EventListener(Singleton):
         daemon.block_number = block_number
         daemon.save()
 
-    def backup(self, block_hash, block_number, timestamp, decoded_event, event_receiver_string):
+    def backup(self, block_hash, block_number, timestamp, decoded_event,
+               event_receiver_string):
         # Get block or create new one
-        block, _ = Block.objects.get_or_create(block_hash=block_hash, defaults={'block_number': block_number, 'timestamp': timestamp})
+        block, _ = Block.objects.get_or_create(block_hash=block_hash,
+                                               defaults={'block_number': block_number,
+                                                         'timestamp': timestamp}
+                                               )
 
         saved_logs = loads(block.decoded_logs)
-        saved_logs.append({'event_receiver': event_receiver_string, 'event':decoded_event})
+        saved_logs.append({'event_receiver': event_receiver_string,
+                           'event': decoded_event})
 
-        block.decoded_logs = dumps(saved_logs)
+        block.decoded_logs = dumps(saved_logs, cls=JsonBytesEncoder)
         block.save()
 
     def clean_old_backups(self):

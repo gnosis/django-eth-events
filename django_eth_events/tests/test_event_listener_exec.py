@@ -10,7 +10,7 @@ from django_eth_events.models import Daemon, Block
 from web3 import TestRPCProvider
 from json import loads, dumps
 import os
-from ethereum.utils import remove_0x_head
+from django_eth_events.utils import remove_0x_head
 
 centralized_oracle_bytecode = "6060604052341561000c57fe5b5b6109ad8061001c6000396000f30060606040526000357c01000000000000000000000000000000" \
                               "00000000000000000000000000900463ffffffff1680634e2f220c1461003b575bfe5b341561004357fe5b61009360048080359060" \

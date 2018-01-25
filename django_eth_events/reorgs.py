@@ -1,6 +1,6 @@
 from django_eth_events.models import Daemon, Block
 from django_eth_events.web3_service import Web3Service
-from ethereum.utils import remove_0x_head
+from django_eth_events.utils import remove_0x_head
 
 
 class UnknownBlockReorg(Exception):

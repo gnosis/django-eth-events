@@ -6,7 +6,10 @@ class Singleton(object):
 
     def __new__(cls, *args, **kwargs):
         if not isinstance(cls._instance, cls):
-            cls._instance = object.__new__(cls, *args, **kwargs)
+            # In Python 3.4+ is not allowed to send args to __new__ if __init__
+            # is defined
+            # cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(Singleton, cls).__new__(cls)
         return cls._instance
 
 
