@@ -6,7 +6,7 @@ from multiprocessing import Process
 from time import sleep
 from django.core.cache import cache
 from .mocked_testrpc_reorg import MockedTestrpc
-from django_eth_events.chainevents import AbstractEventReceiver
+from django_eth_events.chain_events import AbstractEventReceiver
 from django_eth_events.factories import DaemonFactory
 from django_eth_events.models import Block, Daemon
 from django_eth_events.reorgs import check_reorg, NoBackup

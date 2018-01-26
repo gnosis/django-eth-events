@@ -47,7 +47,7 @@ ETH_EVENTS = [
 Take a look at GnosisDB repository and check out the full documentation: [link](https://github.com/gnosis/gnosisdb).
 
 # Tests
-You can launch tests using `python runtests.py`. No additional services are required. 
+You can launch tests using `python run_tests.py`. No additional services are required. 
 
 Django tests can also be used
 ```
