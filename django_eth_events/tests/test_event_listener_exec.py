@@ -5,7 +5,7 @@ from web3 import Web3
 from django_eth_events.factories import DaemonFactory
 from django_eth_events.event_listener import EventListener
 from django_eth_events.web3_service import Web3Service
-from django_eth_events.chain_events import AbstractEventReceiver
+from django_eth_events.chainevents import AbstractEventReceiver
 from django_eth_events.models import Daemon, Block
 from web3 import TestRPCProvider
 from json import loads, dumps
