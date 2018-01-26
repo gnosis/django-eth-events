@@ -9,4 +9,5 @@ ethereum-abi-utils==0.4.0
 ethereum-utils==0.2.0
 factory-boy==2.5.2
 kombu==4.1.0
+six==1.11.0
 web3[tester]==3.7.1

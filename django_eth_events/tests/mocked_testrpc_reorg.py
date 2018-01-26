@@ -1,11 +1,6 @@
 from json import dumps, loads
 from django.core.cache import cache
-
-# Python 2 and 3
-try:
-    from BaseHTTPServer import BaseHTTPRequestHandler
-except ImportError:
-    from http.server import BaseHTTPRequestHandler
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler
 
 
 class MockedTestrpc(BaseHTTPRequestHandler):

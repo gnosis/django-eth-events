@@ -11,12 +11,7 @@ from django_eth_events.factories import DaemonFactory
 from django_eth_events.models import Block, Daemon
 from django_eth_events.reorgs import check_reorg, NoBackup
 from django_eth_events.web3_service import Web3Service
-
-# Python 2 and 3
-try:
-    from BaseHTTPServer import HTTPServer
-except ImportError:
-    from http.server import HTTPServer
+from six.moves.BaseHTTPServer import HTTPServer
 
 
 def start_mock_server():
