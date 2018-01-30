@@ -91,7 +91,7 @@ def deadlock_checker(lock_interval=60000):
         valid_interval = datetime.now() - timedelta(milliseconds=lock_interval)
         if daemon.modified < valid_interval and daemon.listener_lock == True:
             # daemon is deadlocked
-            logger.info('Found deadlocked Daemon task')
+            logger.info('Found deadlocked Daemon task, block number %d' % daemon.block_number)
             with transaction.atomic():
                 daemon.listener_lock = False
                 daemon.save()
