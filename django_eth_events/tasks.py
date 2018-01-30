@@ -9,6 +9,7 @@ from urllib3.exceptions import (
     HTTPError, PoolError, LocationValueError
 )
 from requests.exceptions import RequestException
+from datetime import datetime, timedelta
 import traceback
 import errno
 
@@ -76,3 +77,24 @@ def event_listener():
                 daemon = Daemon.objects.select_for_update().first()
                 daemon.listener_lock = False
                 daemon.save()
+
+
+@shared_task
+def deadlock_checker(lock_interval=60000):
+    """
+    Verifies whether celery tasks over the Daemon table are deadlocked.
+    :param lock_interval: milliseconds
+    """
+    try:
+        logger.info("Deadlock checker, lock_interval %d" % lock_interval)
+        daemon = Daemon.get_solo()
+        valid_interval = datetime.now() - timedelta(milliseconds=lock_interval)
+        if daemon.modified < valid_interval and daemon.listener_lock == True:
+            # daemon is deadlocked
+            logger.info('Found deadlocked Daemon task')
+            with transaction.atomic():
+                daemon.listener_lock = False
+                daemon.save()
+    except Exception as err:
+        logger.error(str(err))
+        send_email(traceback.format_exc())
