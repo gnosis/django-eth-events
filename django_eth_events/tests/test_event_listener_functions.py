@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from json import loads
+from web3 import TestRPCProvider
+from eth_utils import to_normalized_address
+from django_eth_events.utils import remove_0x_head
 from django.test import TestCase
 from django_eth_events.factories import DaemonFactory
 from django_eth_events.event_listener import EventListener
@@ -86,7 +90,9 @@ class TestDaemon(TestCase):
                 u'params': [
                     {
                         u'name': u'owners',
-                        u'value': [remove_0x_head(account) for account in self.bot.web3.eth.accounts[0:2]]
+                        u'value': [remove_0x_head(to_normalized_address(account))
+                                   for account
+                                   in self.bot.web3.eth.accounts[0:2]]
                     }
                 ]
             },
@@ -99,7 +105,7 @@ class TestDaemon(TestCase):
                 u'params': [
                     {
                         u'name': 'sender',
-                        u'value': remove_0x_head(self.bot.web3.eth.coinbase)
+                        u'value': remove_0x_head(to_normalized_address(self.bot.web3.eth.coinbase))
                     },
                     {
                         u'name': 'instantiation',

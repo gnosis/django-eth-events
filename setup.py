@@ -6,21 +6,20 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 
 requirements = [
-    "six==1.11.0",
-    "bitcoin==1.1.42",
     "celery==4.1.0",
     "Django==1.11",
-    "django-solo==1.1.2",
+    "django-solo==1.1.3",
+    "eth-abi==0.5.0",
+    "eth-utils==0.7.4",
     "ethereum==1.6.1",
-    "ethereum-abi-utils==0.4.0",
-    "ethereum-utils==0.2.0",
     "kombu==4.1.0",
-    "web3[tester]==3.7.1"
+    "six==1.11.0",
+    "web3[tester]==3.16.4",
 ]
 
 setup(
     name='django-eth-events',
-    version='1.0.29',
+    version='1.0.30',
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
