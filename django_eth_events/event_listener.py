@@ -25,10 +25,14 @@ class UnknownTransaction(Exception):
 
 class EventListener(Singleton):
 
-    def __init__(self, contract_map=settings.ETH_EVENTS):
+    def __init__(self, contract_map=None):
         super(EventListener, self).__init__()
         self.decoder = Decoder()  # Decodes Ethereum logs
         self.web3 = Web3Service().web3  # Gets transaction and block info from ethereum
+
+        if not contract_map:
+            contract_map = settings.ETH_EVENTS
+
         self.contract_map = contract_map  # Taken from settings, it's the contracts we listen to
 
     @staticmethod
