@@ -1,14 +1,15 @@
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.utils.module_loading import import_string
-from django_eth_events.utils import remove_0x_head
 
 from django_eth_events.decoder import Decoder
 from django_eth_events.models import Daemon, Block
 from django_eth_events.singleton import Singleton
 from django_eth_events.web3_service import Web3Service
 from django_eth_events.reorgs import check_reorg
-from django_eth_events.utils import JsonBytesEncoder
+from django_eth_events.utils import (JsonBytesEncoder,
+                                     remove_0x_head,
+                                     normalize_address_without_0x)
 
 from json import dumps, loads
 
@@ -103,7 +104,10 @@ class EventListener(Singleton):
         except Exception as e:
             logger.error(e)
             raise LookupError("Could not retrieve watched addresses for contract {}".format(contract))
-        return addresses
+
+        normalized_addresses = [normalize_address_without_0x(address)
+                                for address in addresses]
+        return normalized_addresses
 
     def save_event(self, contract, decoded_log, block_info):
         EventReceiver = import_string(contract['EVENT_DATA_RECEIVER'])
@@ -196,7 +200,8 @@ class EventListener(Singleton):
                         watched_addresses = self.get_watched_contract_addresses(contract)
 
                         # Filter logs by relevant addresses
-                        target_logs = [log for log in logs if remove_0x_head(log['address']) in watched_addresses]
+                        target_logs = [log for log in logs if
+                                       normalize_address_without_0x(log['address']) in watched_addresses]
 
                         logger.info('{} logs'.format(len(target_logs)))
 
@@ -233,7 +238,7 @@ class EventListener(Singleton):
                     Block.objects.get_or_create(
                         block_number=block,
                         block_hash=remove_0x_head(block_info['hash']),
-                        defaults={'timestamp':block_info['timestamp']}
+                        defaults={'timestamp': block_info['timestamp']}
                     )
 
             if len(last_mined_blocks):

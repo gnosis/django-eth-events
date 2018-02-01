@@ -6,6 +6,7 @@ from django_eth_events.utils import remove_0x_head
 class UnknownBlockReorg(Exception):
     pass
 
+
 class NoBackup(Exception):
     def __init__(self, message, errors):
         super(NoBackup, self).__init__(message)
