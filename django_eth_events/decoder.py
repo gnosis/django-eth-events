@@ -1,7 +1,7 @@
 # from celery.utils.log import get_task_logger
 import binascii
 from eth_abi import decode_abi
-from django_eth_events.utils import remove_0x_head
+from django_eth_events.utils import normalize_address_without_0x
 from ethereum.utils import sha3
 from .singleton import Singleton
 
@@ -94,11 +94,11 @@ class Decoder(Singleton):
 
             if u'[]' in param[u'type']:
                 if u'address' in param[u'type']:
-                    decoded_p[u'value'] = list([remove_0x_head(account) for account in decoded_p[u'value']])
+                    decoded_p[u'value'] = list([normalize_address_without_0x(account) for account in decoded_p[u'value']])
                 else:
                     decoded_p[u'value'] = list(decoded_p[u'value'])
             elif u'address' == param[u'type']:
-                address = remove_0x_head(decoded_p[u'value'])
+                address = normalize_address_without_0x(decoded_p[u'value'])
                 if len(address) == 40:
                     decoded_p[u'value'] = address
                 elif len(address) == 64:
@@ -109,7 +109,7 @@ class Decoder(Singleton):
         decoded_event = {
             u'params': decoded_params,
             u'name': method[u'name'],
-            u'address': remove_0x_head(log[u'address'])
+            u'address': normalize_address_without_0x(log[u'address'])
         }
 
         return decoded_event

@@ -2,14 +2,11 @@
 from __future__ import unicode_literals
 from json import loads
 from web3 import TestRPCProvider
-from eth_utils import to_normalized_address
-from django_eth_events.utils import remove_0x_head
 from django.test import TestCase
 from django_eth_events.factories import DaemonFactory
 from django_eth_events.event_listener import EventListener
-from django_eth_events.utils import remove_0x_head
+from django_eth_events.utils import normalize_address_without_0x
 from django_eth_events.tests.codes import abi, bin_hex
-from web3 import TestRPCProvider
 
 
 class TestDaemon(TestCase):
@@ -85,12 +82,12 @@ class TestDaemon(TestCase):
         self.assertEqual(2, len(decoded))
         self.assertDictEqual(
             {
-                u'address': remove_0x_head(factory_address),
+                u'address': normalize_address_without_0x(factory_address),
                 u'name': u'OwnersInit',
                 u'params': [
                     {
                         u'name': u'owners',
-                        u'value': [remove_0x_head(to_normalized_address(account))
+                        u'value': [normalize_address_without_0x(account)
                                    for account
                                    in self.bot.web3.eth.accounts[0:2]]
                     }
@@ -100,16 +97,16 @@ class TestDaemon(TestCase):
         )
         self.assertDictEqual(
             {
-                u'address': remove_0x_head(factory_address),
+                u'address': normalize_address_without_0x(factory_address),
                 u'name': u'ContractInstantiation',
                 u'params': [
                     {
                         u'name': 'sender',
-                        u'value': remove_0x_head(to_normalized_address(self.bot.web3.eth.coinbase))
+                        u'value': normalize_address_without_0x(self.bot.web3.eth.coinbase)
                     },
                     {
                         u'name': 'instantiation',
-                        u'value': remove_0x_head(decoded[1][u'params'][1][u'value'])
+                        u'value': normalize_address_without_0x(decoded[1][u'params'][1][u'value'])
                     }
                 ]
             },

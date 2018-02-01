@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import os
 from django.test import TestCase
 from django_eth_events.factories import DaemonFactory
 from django_eth_events.event_listener import EventListener
@@ -8,9 +9,8 @@ from django_eth_events.chainevents import AbstractEventReceiver
 from django_eth_events.models import Daemon, Block
 from web3 import TestRPCProvider
 from json import loads
-from django_eth_events.utils import remove_0x_head
 from django_eth_events.tests.codes import centralized_oracle_abi, centralized_oracle_bytecode
-import os
+from django_eth_events.utils import remove_0x_head
 
 
 centralized_oracles = []
