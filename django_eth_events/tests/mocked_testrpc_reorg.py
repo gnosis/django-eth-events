@@ -29,6 +29,6 @@ class MockedTestrpc(BaseHTTPRequestHandler):
         elif post_body['method'] == 'web3_clientVersion':
             self.wfile.write(dumps({
                 'jsonrpc': '2.0'
-            }))
+            }).encode())
         else:
             self.wfile.write('{"code":32601}'.encode())
