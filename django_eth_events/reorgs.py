@@ -21,13 +21,17 @@ class NoBackup(Exception):
 
 
 def check_reorg():
-    web3 = Web3Service().web3
+    web3 = None
     saved_block_number = Daemon.get_solo().block_number
 
     try:
-        current_block_number = web3.eth.blockNumber
+        web3 = Web3Service().web3
+        if web3.isConnected():
+            current_block_number = web3.eth.blockNumber
+        else:
+            raise Exception()
     except:
-        raise NetworkReorgException('Unable to get block number from current node')
+        raise NetworkReorgException('Unable to get block number from current node. Check the node is up and running.')
 
     if current_block_number >= saved_block_number:
         # check last saved block hash haven't changed
