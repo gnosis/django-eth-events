@@ -9,7 +9,7 @@ from .mocked_testrpc_reorg import MockedTestrpc
 from django_eth_events.chainevents import AbstractEventReceiver
 from django_eth_events.factories import DaemonFactory
 from django_eth_events.models import Block, Daemon
-from django_eth_events.reorgs import check_reorg, NoBackup
+from django_eth_events.reorgs import check_reorg, NoBackup, NetworkReorgException
 from django_eth_events.web3_service import Web3Service
 from six.moves.BaseHTTPServer import HTTPServer
 
@@ -123,6 +123,12 @@ class TestReorgDetector(TestCase):
         Block.objects.create(block_hash=block_hash_reorg, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
         self.assertRaises(NoBackup, check_reorg)
+
+    def test_network_reorg_exception(self):
+        (had_reorg, _) = check_reorg()
+        self.assertFalse(had_reorg)
+        self.p.terminate()
+        self.assertRaises(NetworkReorgException, check_reorg)
 
     def test_reorg_mined_multiple_blocks_ok(self):
         # Last block hash haven't changed

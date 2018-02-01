@@ -4,7 +4,7 @@ from django.db import transaction
 from django.core.mail import mail_admins
 from django_eth_events.event_listener import EventListener, UnknownBlock, UnknownTransaction
 from django_eth_events.models import Daemon
-from django_eth_events.reorgs import UnknownBlockReorg
+from django_eth_events.reorgs import UnknownBlockReorg, NetworkReorgException
 from urllib3.exceptions import (
     HTTPError, PoolError, LocationValueError
 )
@@ -45,6 +45,8 @@ def event_listener():
             logger.error('Unknown Block hash, might be a reorg')
         except UnknownBlockReorg:
             logger.error('Unknown Block hash, might be a reorg')
+        except NetworkReorgException as nrex:
+            logger.error('An error occurred while calling ethereum node on reorgs checker. %s' % nrex.message)
         except Exception as err:
             # Not halting system for connection error cases
             if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED \

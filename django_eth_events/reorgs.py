@@ -3,8 +3,14 @@ from django_eth_events.web3_service import Web3Service
 from django_eth_events.utils import remove_0x_head
 
 
+class NetworkReorgException(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+
 class UnknownBlockReorg(Exception):
     pass
+
 
 class NoBackup(Exception):
     def __init__(self, message, errors):
@@ -15,9 +21,17 @@ class NoBackup(Exception):
 
 
 def check_reorg():
-    web3 = Web3Service().web3
+    web3 = None
     saved_block_number = Daemon.get_solo().block_number
-    current_block_number = web3.eth.blockNumber
+
+    try:
+        web3 = Web3Service().web3
+        if web3.isConnected():
+            current_block_number = web3.eth.blockNumber
+        else:
+            raise Exception()
+    except:
+        raise NetworkReorgException('Unable to get block number from current node. Check the node is up and running.')
 
     if current_block_number >= saved_block_number:
         # check last saved block hash haven't changed

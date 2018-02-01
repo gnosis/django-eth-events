@@ -26,5 +26,9 @@ class MockedTestrpc(BaseHTTPRequestHandler):
         elif post_body['method'] == 'eth_getBlockByNumber':
             hash = cache.get(post_body['params'][0])
             self.wfile.write(dumps({'result': {'hash': hash}}).encode())
+        elif post_body['method'] == 'web3_clientVersion':
+            self.wfile.write(dumps({
+                'jsonrpc': '2.0'
+            }).encode())
         else:
             self.wfile.write('{"code":32601}'.encode())
