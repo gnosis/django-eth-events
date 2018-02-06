@@ -15,7 +15,7 @@ class Web3Service(object):
 
         def __init__(self, provider=None):
             if not provider:
-                provider = RPCProvider(
+                provider = self.default_provider(
                     host=settings.ETHEREUM_NODE_HOST,
                     port=settings.ETHEREUM_NODE_PORT,
                     ssl=settings.ETHEREUM_NODE_SSL
