@@ -1,4 +1,5 @@
 from json import loads
+from django_eth_events.chainevents import AbstractEventReceiver
 
 
 abi = loads(
@@ -200,3 +201,48 @@ centralized_oracle_bytecode = "6060604052341561000c57fe5b5b6109ad8061001c6000396
                               "000a900460ff1681565b6000600260009054906101000a900460ff1690505b905600a165627a7a72305820ed3e2c38177c4a88e910" \
                               "a15d89c1a7e9b0534395a3d76f02abe2fdc9cd57a9cb0029a165627a7a723058201542f2e1ea92f43165a6f655c469365bdc5bb05e" \
                               "075981b919d3b50c7d3468d80029"
+
+
+class CentralizedOracle(object):
+    """
+    Allows to share a list of oracles between test cases and django-eth-events classes/functions
+    """
+    instance = None
+
+    class __Oracle:
+        oracles = None
+
+        def __init__(self):
+            self.oracles = []
+
+        def append(self, value):
+            self.oracles.append(value)
+
+        def pop(self):
+            self.oracles.pop()
+
+        def len(self):
+            return len(self.oracles)
+
+        def reset(self):
+            self.oracles = []
+
+    def __new__(cls):
+        if not CentralizedOracle.instance:
+            CentralizedOracle.instance = CentralizedOracle.__Oracle()
+        return CentralizedOracle.instance
+
+    def __getattr__(self, item):
+        return getattr(self.instance, item)
+
+
+class CentralizedOraclesReceiver(AbstractEventReceiver):
+    """
+    A dummy Centralized Oracle receiver
+    """
+    def save(self, decoded_event, block_info):
+        CentralizedOracle().append(decoded_event)
+        return decoded_event
+
+    def rollback(self, decoded_event, block_info):
+        CentralizedOracle().pop()

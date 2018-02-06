@@ -4,7 +4,6 @@ from django.utils.module_loading import import_string
 
 from django_eth_events.decoder import Decoder
 from django_eth_events.models import Daemon, Block
-from django_eth_events.singleton import Singleton
 from django_eth_events.web3_service import Web3Service
 from django_eth_events.reorgs import check_reorg
 from django_eth_events.utils import (JsonBytesEncoder,
@@ -24,10 +23,32 @@ class UnknownTransaction(Exception):
     pass
 
 
-class EventListener(Singleton):
+class SingletonListener(object):
+    """
+    Singleton class decorator for EventListener
+    """
+    def __init__(self, klass):
+        self.klass = klass
+        self.instance = None
+
+    def __call__(self, *args, **kwargs):
+        contract_map = kwargs.get('contract_map', None)
+        provider = kwargs.get('provider', None)
+
+        if provider and self.instance and not isinstance(provider, self.instance.provider.__class__):
+            self.instance = self.klass(contract_map=contract_map, provider=provider)
+        elif not self.instance:
+            # In Python 3.4+ is not allowed to send args to __new__ if __init__
+            # is defined
+            # cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
+            self.instance = self.klass(contract_map=contract_map, provider=provider)
+        return self.instance
+
+
+@SingletonListener
+class EventListener(object):
 
     def __init__(self, contract_map=None, provider=None):
-        super(EventListener, self).__init__()
         self.decoder = Decoder()  # Decodes Ethereum logs
         self.web3 = Web3Service(provider=provider).web3  # Gets transaction and block info from ethereum
 
@@ -35,6 +56,7 @@ class EventListener(Singleton):
             contract_map = settings.ETH_EVENTS
 
         self.contract_map = contract_map  # Taken from settings, it's the contracts we listen to
+        self.provider = provider
 
     @staticmethod
     def next_block(self):
@@ -171,7 +193,7 @@ class EventListener(Singleton):
         daemon = Daemon.get_solo()
         if daemon.status == 'EXECUTING':
             # Check reorg
-            had_reorg, reorg_block_number = check_reorg()
+            had_reorg, reorg_block_number = check_reorg(provider=self.provider)
 
             if had_reorg:
                 self.rollback(reorg_block_number)
