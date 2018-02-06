@@ -221,7 +221,7 @@ class CentralizedOracle(object):
         def pop(self):
             self.oracles.pop()
 
-        def len(self):
+        def length(self):
             return len(self.oracles)
 
         def reset(self):

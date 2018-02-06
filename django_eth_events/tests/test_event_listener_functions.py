@@ -6,7 +6,7 @@ from django.test import TestCase
 from django_eth_events.factories import DaemonFactory
 from django_eth_events.event_listener import EventListener
 from django_eth_events.utils import normalize_address_without_0x
-from django_eth_events.tests.codes import abi, bin_hex
+from django_eth_events.tests.utils import abi, bin_hex
 
 
 class TestDaemon(TestCase):
