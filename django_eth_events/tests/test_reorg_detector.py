@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from django.test import TestCase
-from web3 import RPCProvider
+from web3 import RPCProvider, TestRPCProvider
 from multiprocessing import Process
 from time import sleep
 from django.core.cache import cache
@@ -38,8 +38,8 @@ class TestReorgDetector(TestCase):
     def setUp(self):
         # Run mocked testrpc for reorgs
         print('Starting httpd...')
-        self.p = Process(target=start_mock_server)
-        self.p.start()
+        self.server_process = Process(target=start_mock_server)
+        self.server_process.start()
         cache.set('block_number', '0x0')
         sleep(1)
         print('served')
@@ -127,7 +127,7 @@ class TestReorgDetector(TestCase):
     def test_network_reorg_exception(self):
         (had_reorg, _) = check_reorg()
         self.assertFalse(had_reorg)
-        self.p.terminate()
+        self.server_process.terminate()
         self.assertRaises(NetworkReorgException, check_reorg)
 
     def test_reorg_mined_multiple_blocks_ok(self):
@@ -217,8 +217,44 @@ class TestReorgDetector(TestCase):
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 0)
 
+    def test_reorg_web3_provider(self):
+        # Stop running server
+        self.server_process.terminate()
+        rpc_provider = TestRPCProvider()
+        # Run check_reorg, should not raise exceptions
+        (had_reorg, block_number) = check_reorg(provider=rpc_provider)
+        self.assertFalse(had_reorg)
+        # Stop rpc test provider server
+        rpc_provider.server.shutdown()
+        rpc_provider.server.server_close()
+
+        # Restart rpc server
+        self.server_process = None
+        self.server_process = Process(target=start_mock_server)
+        self.server_process.start()
+        sleep(1)
+
+        # Simulate reorg
+        block_hash_0 = '{:040d}'.format(0)
+        block_hash_1 = '{:040d}'.format(1)
+
+        Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
+        Daemon.objects.all().update(block_number=0)
+
+        cache.set('0x0', block_hash_0)
+        cache.set('0x1', block_hash_1)
+        cache.set('block_number', '0x2')
+        block_hash_reorg = '{:040d}'.format(1313)
+        Block.objects.create(block_hash=block_hash_reorg, block_number=1, timestamp=0)
+        Daemon.objects.all().update(block_number=1)
+
+        (had_reorg, block_number) = check_reorg()
+        self.assertTrue(had_reorg)
+
+
+
     def tearDown(self):
-        self.p.terminate()
-        self.p = None
+        self.server_process.terminate()
+        self.server_process = None
         cache.clear()
         sleep(1)

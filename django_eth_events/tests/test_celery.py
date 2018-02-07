@@ -6,7 +6,7 @@ from django_eth_events.factories import DaemonFactory
 from django_eth_events.models import Daemon, Block
 from django_eth_events.tasks import event_listener
 from django_eth_events.web3_service import Web3Service
-from django_eth_events.tests.codes import centralized_oracle_abi, centralized_oracle_bytecode
+from django_eth_events.tests.utils import centralized_oracle_abi, centralized_oracle_bytecode
 from django_eth_events.chainevents import AbstractEventReceiver
 from django.conf import settings
 from web3 import TestRPCProvider

@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from django.test import TestCase
 from web3 import RPCProvider, IPCProvider
 from django_eth_events.web3_service import Web3Service
-
+from django_eth_events.event_listener import EventListener
 
 
 class TestSingleton(TestCase):
@@ -35,3 +35,15 @@ class TestSingleton(TestCase):
         service2 = Web3Service(ipc_provider)
         self.assertIsInstance(service2.web3.currentProvider, IPCProvider)
         self.assertEquals(service2.web3.currentProvider, ipc_provider)
+
+    def test_event_listener_singleton(self):
+        ipc_provider = IPCProvider(
+            ipc_path='',
+            testnet=True
+        )
+
+        listener1 = EventListener()
+        listener2 = EventListener()
+        self.assertEquals(listener1, listener2)
+        listener3 = EventListener(provider=ipc_provider)
+        self.assertNotEquals(listener2, listener3)

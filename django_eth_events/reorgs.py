@@ -20,12 +20,20 @@ class NoBackup(Exception):
         self.errors = errors
 
 
-def check_reorg():
+def check_reorg(provider=None):
+    """
+    Checks for reorgs to happening
+    :param provider: optional Web3 provider instance
+    :return: Tuple (True|False, None|Block number)
+    :raise NetworkReorgException
+    :raise UnknownBlockReorg
+    :raise NoBackup
+    """
     web3 = None
     saved_block_number = Daemon.get_solo().block_number
 
     try:
-        web3 = Web3Service().web3
+        web3 = Web3Service(provider=provider).web3
         if web3.isConnected():
             current_block_number = web3.eth.blockNumber
         else:

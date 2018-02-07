@@ -5,31 +5,19 @@ from django.test import TestCase
 from django_eth_events.factories import DaemonFactory
 from django_eth_events.event_listener import EventListener
 from django_eth_events.web3_service import Web3Service
-from django_eth_events.chainevents import AbstractEventReceiver
 from django_eth_events.models import Daemon, Block
+from django_eth_events.tests.utils import CentralizedOracle
 from web3 import TestRPCProvider
 from json import loads
-from django_eth_events.tests.codes import centralized_oracle_abi, centralized_oracle_bytecode
+from django_eth_events.tests.utils import centralized_oracle_abi, centralized_oracle_bytecode
 from django_eth_events.utils import remove_0x_head
-
-
-centralized_oracles = []
-
-
-class CentralizedOraclesReceiver(AbstractEventReceiver):
-    def save(self, decoded_event, block_info):
-        centralized_oracles.append(decoded_event)
-        return decoded_event
-
-    def rollback(self, decoded_event, block_info):
-        centralized_oracles.pop()
 
 
 class TestDaemonExec(TestCase):
     def setUp(self):
         os.environ.update({'TESTRPC_GAS_LIMIT': '10000000000'})
-        self.rpc = TestRPCProvider()
-        web3_service = Web3Service(self.rpc)
+        self.provider = TestRPCProvider()
+        web3_service = Web3Service(self.provider)
         self.web3 = web3_service.web3
         # Mock web3
         self.daemon = DaemonFactory()
@@ -46,22 +34,20 @@ class TestDaemonExec(TestCase):
             {
                 'NAME': 'Centralized Oracle Factory',
                 'EVENT_ABI': centralized_oracle_abi,
-                'EVENT_DATA_RECEIVER': 'django_eth_events.tests.test_event_listener_exec.CentralizedOraclesReceiver',
+                'EVENT_DATA_RECEIVER': 'django_eth_events.tests.utils.CentralizedOraclesReceiver',
                 'ADDRESSES': [self.centralized_oracle_factory_address[2::]]
             }
         ]
-
-        self.listener_under_test = EventListener(self.contracts)
+        self.listener_under_test = EventListener(contract_map=self.contracts, provider=self.provider)
+        CentralizedOracle().reset()
 
     def tearDown(self):
-        self.rpc.server.shutdown()
-        self.rpc.server.server_close()
-        self.rpc = None
-        global centralized_oracles
-        centralized_oracles = []
+        self.provider.server.shutdown()
+        self.provider.server.server_close()
+        self.provider = None
 
     def test_create_centralized_oracle(self):
-        self.assertEqual(len(centralized_oracles), 0)
+        self.assertEqual(CentralizedOracle().length(), 0)
         self.assertEqual(0, Daemon.get_solo().block_number)
         self.assertEqual(0, Block.objects.all().count())
 
@@ -69,7 +55,7 @@ class TestDaemonExec(TestCase):
         tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle('QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
         self.assertIsNotNone(tx_hash)
         self.listener_under_test.execute()
-        self.assertEqual(len(centralized_oracles), 1)
+        self.assertEqual(CentralizedOracle().length(), 1)
         self.assertEqual(1, Daemon.get_solo().block_number)
 
         # Check backup
@@ -82,7 +68,7 @@ class TestDaemonExec(TestCase):
         accounts = self.web3.eth.accounts
         self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 5000000})
         self.assertEqual(0, Block.objects.all().count())
-        self.assertEqual(len(centralized_oracles), 0)
+        self.assertEqual(CentralizedOracle().length(), 0)
         self.assertEqual(1, self.web3.eth.blockNumber)
 
         # Create centralized oracle
@@ -90,16 +76,16 @@ class TestDaemonExec(TestCase):
             'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
         self.assertIsNotNone(tx_hash)
         self.listener_under_test.execute()
-        self.assertEqual(len(centralized_oracles), 1)
+        self.assertEqual(CentralizedOracle().length(), 1)
         self.assertEqual(2, Daemon.get_solo().block_number)
         self.assertEqual(2, Block.objects.all().count())
         self.assertEqual(2, self.web3.eth.blockNumber)
 
         # Reset blockchain (simulates reorg)
-        self.rpc.server.shutdown()
-        self.rpc.server.server_close()
-        self.rpc = TestRPCProvider()
-        web3_service = Web3Service(self.rpc)
+        self.provider.server.shutdown()
+        self.provider.server.server_close()
+        self.provider = TestRPCProvider()
+        web3_service = Web3Service(self.provider)
         self.web3 = web3_service.web3
         self.assertEqual(0, self.web3.eth.blockNumber)
 
@@ -113,6 +99,6 @@ class TestDaemonExec(TestCase):
         Block.objects.filter(block_number=1).update(block_hash=block_hash)
 
         self.listener_under_test.execute()
-        self.assertEqual(len(centralized_oracles), 0)
+        self.assertEqual(CentralizedOracle().length(), 0)
         self.assertEqual(2, Daemon.get_solo().block_number)
         self.assertEqual(2, Block.objects.all().count())
