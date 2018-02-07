@@ -26,10 +26,12 @@ def send_email(message):
 def event_listener():
     with transaction.atomic():
         daemon = Daemon.objects.select_for_update().first()
+        if not daemon:
+            logger.debug('Daemon singleton row was not created, creating')
+            Daemon.get_solo()
         locked = daemon.listener_lock
         if not locked:
-            logger.debug(
-                'LOCK acquired')
+            logger.debug('LOCK acquired')
             daemon.listener_lock = True
             daemon.save()
     if locked:
@@ -49,12 +51,14 @@ def event_listener():
             logger.error('An error occurred while calling ethereum node on reorgs checker. %s' % nrex.message)
         except Exception as err:
             # Not halting system for connection error cases
-            if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED \
-                or err.errno == errno.ECONNRESET \
-                or err.errno == errno.ECONNREFUSED):
+            if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED
+                                          or err.errno == errno.ECONNRESET
+                                          or err.errno == errno.ECONNREFUSED):
                 logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
-            elif isinstance(err, HTTPError) or isinstance(err, PoolError) \
-                or isinstance(err, LocationValueError) or isinstance(err, RequestException):
+            elif (isinstance(err, HTTPError)
+                  or isinstance(err, PoolError)
+                  or isinstance(err, LocationValueError)
+                  or isinstance(err, RequestException)):
                 logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
             else:
                 logger.error("Halting system due to error {}".format(str(err)))
@@ -91,7 +95,7 @@ def deadlock_checker(lock_interval=60000):
         logger.info("Deadlock checker, lock_interval %d" % lock_interval)
         daemon = Daemon.get_solo()
         valid_interval = datetime.now() - timedelta(milliseconds=lock_interval)
-        if daemon.modified < valid_interval and daemon.listener_lock == True:
+        if daemon.modified < valid_interval and daemon.listener_lock is True:
             # daemon is deadlocked
             logger.info('Found deadlocked Daemon task, block number %d' % daemon.block_number)
             with transaction.atomic():
