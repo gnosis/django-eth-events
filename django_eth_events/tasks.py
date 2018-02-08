@@ -28,7 +28,7 @@ def event_listener():
         daemon = Daemon.objects.select_for_update().first()
         if not daemon:
             logger.debug('Daemon singleton row was not created, creating')
-            Daemon.get_solo()
+            daemon = Daemon.get_solo()
         locked = daemon.listener_lock
         if not locked:
             logger.debug('LOCK acquired')
