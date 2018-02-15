@@ -1,10 +1,11 @@
 import factory
-from django_eth_events import models
+
+from .models import Daemon
 
 
 class DaemonFactory(factory.DjangoModelFactory):
 
     class Meta:
-        model = models.Daemon
+        model = Daemon
 
     block_number = 0

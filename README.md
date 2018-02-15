@@ -58,5 +58,6 @@ python django_eth_events/manage.py test
 
 Coverage can be run using _coverage_ tool:
 ```
+pip install coverage
 coverage run --source=django_eth_events django_eth_events/manage.py test
 ```

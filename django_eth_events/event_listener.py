@@ -2,13 +2,13 @@ from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.utils.module_loading import import_string
 
-from django_eth_events.decoder import Decoder
-from django_eth_events.models import Daemon, Block
-from django_eth_events.web3_service import Web3Service
-from django_eth_events.reorgs import check_reorg
-from django_eth_events.utils import (JsonBytesEncoder,
-                                     remove_0x_head,
-                                     normalize_address_without_0x)
+from .decoder import Decoder
+from .models import Daemon, Block
+from .reorgs import check_reorg
+from .utils import (JsonBytesEncoder,
+                    remove_0x_head,
+                    normalize_address_without_0x)
+from .web3_service import Web3Service
 
 from json import dumps, loads
 
@@ -35,7 +35,10 @@ class SingletonListener(object):
         contract_map = kwargs.get('contract_map', None)
         provider = kwargs.get('provider', None)
 
-        if provider and self.instance and not isinstance(provider, self.instance.provider.__class__):
+        different_provider = self.instance and provider and not isinstance(provider, self.instance.provider.__class__)
+        different_contract = self.instance and contract_map and (contract_map != self.instance.contract_map)
+
+        if different_provider or different_contract:
             self.instance = self.klass(contract_map=contract_map, provider=provider)
         elif not self.instance:
             # In Python 3.4+ is not allowed to send args to __new__ if __init__
@@ -56,10 +59,13 @@ class EventListener(object):
             contract_map = settings.ETH_EVENTS
 
         self.contract_map = contract_map  # Taken from settings, it's the contracts we listen to
-        self.provider = provider
+
+    @property
+    def provider(self):
+        return self.web3.providers[0]
 
     @staticmethod
-    def next_block(self):
+    def next_block(cls):
         return Daemon.get_solo().block_number
 
     def get_last_mined_blocks(self):
@@ -100,8 +106,8 @@ class EventListener(object):
             raise UnknownBlock
         logs = []
 
-        if block and block.get(u'hash'):
-            for tx in block[u'transactions']:
+        if block and block.get('hash'):
+            for tx in block['transactions']:
                 # receipt sometimes is none, might be because a reorg, we exit the loop with a controlled exeception
                 try:
                     receipt = self.web3.eth.getTransactionReceipt(tx)
@@ -110,7 +116,7 @@ class EventListener(object):
                 if receipt is None:
                     raise UnknownTransaction
                 if receipt.get('logs'):
-                    logs.extend(receipt[u'logs'])
+                    logs.extend(receipt['logs'])
             return logs, block
         else:
             raise UnknownBlock

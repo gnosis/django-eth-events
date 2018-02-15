@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from django.test import TestCase
-from web3 import RPCProvider, TestRPCProvider
+from http.server import HTTPServer
 from multiprocessing import Process
 from time import sleep
+
 from django.core.cache import cache
+from django.test import TestCase
+
+from eth_tester import EthereumTester
+from web3 import RPCProvider
+from web3.providers.eth_tester import EthereumTesterProvider
+
+from ..chainevents import AbstractEventReceiver
+from ..factories import DaemonFactory
+from ..models import Block, Daemon
+from ..reorgs import check_reorg, NoBackup, NetworkReorgException
+from ..web3_service import Web3Service
 from .mocked_testrpc_reorg import MockedTestrpc
-from django_eth_events.chainevents import AbstractEventReceiver
-from django_eth_events.factories import DaemonFactory
-from django_eth_events.models import Block, Daemon
-from django_eth_events.reorgs import check_reorg, NoBackup, NetworkReorgException
-from django_eth_events.web3_service import Web3Service
-from six.moves.BaseHTTPServer import HTTPServer
 
 
 def start_mock_server():
@@ -48,10 +52,15 @@ class TestReorgDetector(TestCase):
             port='8545',
             ssl=0
         )
-        web3_service = Web3Service(self.rpc)
-        self.web3 = web3_service.web3
+        self.web3 = Web3Service(self.rpc).web3
         # Mock web3
         self.daemon = DaemonFactory()
+
+    def tearDown(self):
+        self.server_process.terminate()
+        self.server_process = None
+        cache.clear()
+        sleep(1)
 
     def test_mocked_block_number(self):
         self.assertEqual(self.web3.eth.blockNumber, 0)
@@ -142,7 +151,7 @@ class TestReorgDetector(TestCase):
 
         # new block number changed more than one unit
         block_hash_1 = '{:040d}'.format(1)
-        cache.set('0x1', block_hash_1) # set_mocked_testrpc_block_hash
+        cache.set('0x1', block_hash_1)  # set_mocked_testrpc_block_hash
         cache.set('block_number', '0x9')
         Block.objects.create(block_hash=block_hash_1, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
@@ -220,13 +229,13 @@ class TestReorgDetector(TestCase):
     def test_reorg_web3_provider(self):
         # Stop running server
         self.server_process.terminate()
-        rpc_provider = TestRPCProvider()
+        ethereum_tester = EthereumTester()
+        ethereum_tester_provider = EthereumTesterProvider(ethereum_tester)
         # Run check_reorg, should not raise exceptions
-        (had_reorg, block_number) = check_reorg(provider=rpc_provider)
+        (had_reorg, block_number) = check_reorg(provider=ethereum_tester_provider)
         self.assertFalse(had_reorg)
-        # Stop rpc test provider server
-        rpc_provider.server.shutdown()
-        rpc_provider.server.server_close()
+        # Reset genesis block to simulate reorg
+        ethereum_tester.reset_to_genesis()
 
         # Restart rpc server
         self.server_process = None
@@ -250,11 +259,3 @@ class TestReorgDetector(TestCase):
 
         (had_reorg, block_number) = check_reorg()
         self.assertTrue(had_reorg)
-
-
-
-    def tearDown(self):
-        self.server_process.terminate()
-        self.server_process = None
-        cache.clear()
-        sleep(1)

@@ -1,4 +1,5 @@
 from json import JSONEncoder
+
 from eth_utils import to_normalized_address
 
 

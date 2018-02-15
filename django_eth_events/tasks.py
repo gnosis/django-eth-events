@@ -1,17 +1,20 @@
+from datetime import datetime, timedelta
+import errno
+import traceback
+from urllib3.exceptions import (
+    HTTPError, PoolError, LocationValueError
+)
+
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.db import transaction
 from django.core.mail import mail_admins
-from django_eth_events.event_listener import EventListener, UnknownBlock, UnknownTransaction
-from django_eth_events.models import Daemon
-from django_eth_events.reorgs import UnknownBlockReorg, NetworkReorgException
-from urllib3.exceptions import (
-    HTTPError, PoolError, LocationValueError
-)
 from requests.exceptions import RequestException
-from datetime import datetime, timedelta
-import traceback
-import errno
+
+from .event_listener import EventListener, UnknownBlock, UnknownTransaction
+from .models import Daemon
+from .reorgs import UnknownBlockReorg, NetworkReorgException
+
 
 logger = get_task_logger(__name__)
 
@@ -23,7 +26,7 @@ def send_email(message):
 
 
 @shared_task
-def event_listener():
+def event_listener(provider=None):
     with transaction.atomic():
         daemon = Daemon.objects.select_for_update().first()
         if not daemon:
@@ -35,10 +38,9 @@ def event_listener():
             daemon.listener_lock = True
             daemon.save()
     if locked:
-        logger.debug(
-            'LOCK already being imported by another worker')
+        logger.debug('LOCK already being imported by another worker')
     else:
-        bot = EventListener()
+        bot = EventListener(provider=provider)
         try:
             bot.execute()
         except UnknownTransaction:

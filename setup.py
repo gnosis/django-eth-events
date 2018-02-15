@@ -13,8 +13,7 @@ requirements = [
     "eth-utils==0.7.4",
     "ethereum==1.6.1",
     "kombu==4.1.0",
-    "six==1.11.0",
-    "web3[tester]==3.16.4",
+    "web3==3.16.5",
 ]
 
 setup(
