@@ -7,7 +7,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 requirements = [
     "celery==4.1.0",
-    "Django==1.11",
+    "Django==2.0.2",
     "django-solo==1.1.3",
     "eth-abi==0.5.0",
     "eth-utils==0.7.4",
@@ -18,7 +18,7 @@ requirements = [
 
 setup(
     name='django-eth-events',
-    version='1.0.35',
+    version='1.0.36',
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
