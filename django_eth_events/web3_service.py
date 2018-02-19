@@ -26,9 +26,11 @@ class Web3Service(object):
     def __new__(cls, provider=None):
         if not Web3Service.instance:
             Web3Service.instance = Web3Service.__Web3Service(provider)
-        elif provider and not isinstance(provider, Web3Service.instance.web3.currentProvider.__class__):
+        elif provider and not isinstance(provider,
+                                         Web3Service.instance.web3.providers[0].__class__):
             Web3Service.instance = Web3Service.__Web3Service(provider)
-        elif not provider and not isinstance(Web3Service.instance.web3.currentProvider, Web3Service.instance.default_provider):
+        elif not provider and not isinstance(Web3Service.instance.web3.providers[0],
+                                             Web3Service.instance.default_provider):
             Web3Service.instance = Web3Service.__Web3Service(provider)
         return Web3Service.instance
 

@@ -1,26 +1,27 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from json import loads
-from web3 import TestRPCProvider
+from eth_tester import EthereumTester
+from web3.providers.eth_tester import EthereumTesterProvider
+
 from django.test import TestCase
-from django_eth_events.factories import DaemonFactory
-from django_eth_events.event_listener import EventListener
-from django_eth_events.utils import normalize_address_without_0x
-from django_eth_events.tests.utils import abi, bin_hex
+
+from ..event_listener import EventListener
+from ..factories import DaemonFactory
+from ..utils import normalize_address_without_0x
+from .utils import abi, bin_hex
 
 
 class TestDaemon(TestCase):
     def setUp(self):
-        self.rpc = TestRPCProvider()
         self.daemon = DaemonFactory()
-        self.bot = EventListener(self.rpc)
+        self.bot = EventListener(provider=EthereumTesterProvider(EthereumTester()))
+        self.provider = self.bot.web3.providers[0]
+        self.bot.web3.eth.defaultAccount = self.bot.web3.eth.coinbase
         self.bot.decoder.methods = {}
         self.maxDiff = None
 
     def tearDown(self):
-        self.rpc.server.shutdown()
-        self.rpc.server.server_close()
-        self.rpc = None
+        self.provider.ethereum_tester.reset_to_genesis()
+        self.assertEqual(0, self.bot.web3.eth.blockNumber)
 
     def test_next_block(self):
         self.assertListEqual(list(self.bot.get_last_mined_blocks()), [])
@@ -29,22 +30,22 @@ class TestDaemon(TestCase):
         self.bot.web3.eth.getTransactionReceipt(tx_hash)
         tx_hash2 = factory.deploy()
         self.bot.web3.eth.getTransactionReceipt(tx_hash2)
-        self.assertEquals(list(self.bot.get_last_mined_blocks()), [1])
-        self.bot.update_block_number(1)
-        self.assertEquals(list(self.bot.get_last_mined_blocks()), [])
+        self.assertEqual(list(self.bot.get_last_mined_blocks()), [1, 2])
+        self.bot.update_block_number(2)
+        self.assertEqual(list(self.bot.get_last_mined_blocks()), [])
 
     def test_load_abis(self):
         self.assertIsNotNone(self.bot.decoder)
-        self.assertEquals(len(self.bot.decoder.methods), 0)
-        self.assertEquals(self.bot.decoder.add_abi([]), 0)
-        self.assertEquals(len(self.bot.decoder.methods), 0)
+        self.assertEqual(len(self.bot.decoder.methods), 0)
+        self.assertEqual(self.bot.decoder.add_abi([]), 0)
+        self.assertEqual(len(self.bot.decoder.methods), 0)
         # No ABIs
-        self.assertEquals(self.bot.decoder.add_abi(abi), 6)
-        self.assertEquals(len(self.bot.decoder.methods), 6)
-        self.assertEquals(self.bot.decoder.add_abi([{'nothing': 'wrong'}]), 0)
+        self.assertEqual(self.bot.decoder.add_abi(abi), 6)
+        self.assertEqual(len(self.bot.decoder.methods), 6)
+        self.assertEqual(self.bot.decoder.add_abi([{'nothing': 'wrong'}]), 0)
 
-        self.assertEquals(self.bot.decoder.add_abi(abi), 6)
-        self.assertEquals(self.bot.decoder.add_abi([{'nothing': 'wrong'}]), 0)
+        self.assertEqual(self.bot.decoder.add_abi(abi), 6)
+        self.assertEqual(self.bot.decoder.add_abi([{'nothing': 'wrong'}]), 0)
 
     def test_get_logs(self):
         # no logs before transactions
@@ -59,12 +60,12 @@ class TestDaemon(TestCase):
         receipt = self.bot.web3.eth.getTransactionReceipt(tx_hash)
         self.assertIsNotNone(receipt)
         self.assertIsNotNone(receipt.get('contractAddress'))
-        factory_address = receipt[u'contractAddress']
+        factory_address = receipt['contractAddress']
 
         logs, block_info = self.bot.get_logs(0)
         self.assertListEqual([], logs)
 
-        # send deploy function, will trigger two events
+        # send deploy() function, will trigger two events
         self.bot.decoder.add_abi(abi)
         factory_instance = self.bot.web3.eth.contract(abi, factory_address)
         owners = self.bot.web3.eth.accounts[0:2]
@@ -73,21 +74,21 @@ class TestDaemon(TestCase):
         tx_hash = factory_instance.transact().create(owners, required_confirmations, daily_limit)
         receipt = self.bot.web3.eth.getTransactionReceipt(tx_hash)
         self.assertIsNotNone(receipt)
-        self.assertListEqual(list(self.bot.get_last_mined_blocks()), [1])
-        self.bot.update_block_number(1)
+        self.assertListEqual(list(self.bot.get_last_mined_blocks()), [1, 2])
+        self.bot.update_block_number(2)
         self.assertListEqual(list(self.bot.get_last_mined_blocks()), [])
-        logs, block_info = self.bot.get_logs(1)
+        logs, block_info = self.bot.get_logs(self.bot.web3.eth.blockNumber)
         self.assertEqual(2, len(logs))
         decoded = self.bot.decoder.decode_logs(logs)
         self.assertEqual(2, len(decoded))
         self.assertDictEqual(
             {
-                u'address': normalize_address_without_0x(factory_address),
-                u'name': u'OwnersInit',
-                u'params': [
+                'address': normalize_address_without_0x(factory_address),
+                'name': 'OwnersInit',
+                'params': [
                     {
-                        u'name': u'owners',
-                        u'value': [normalize_address_without_0x(account)
+                        'name': 'owners',
+                        'value': [normalize_address_without_0x(account)
                                    for account
                                    in self.bot.web3.eth.accounts[0:2]]
                     }
@@ -97,16 +98,16 @@ class TestDaemon(TestCase):
         )
         self.assertDictEqual(
             {
-                u'address': normalize_address_without_0x(factory_address),
-                u'name': u'ContractInstantiation',
-                u'params': [
+                'address': normalize_address_without_0x(factory_address),
+                'name': 'ContractInstantiation',
+                'params': [
                     {
-                        u'name': 'sender',
-                        u'value': normalize_address_without_0x(self.bot.web3.eth.coinbase)
+                        'name': 'sender',
+                        'value': normalize_address_without_0x(self.bot.web3.eth.coinbase)
                     },
                     {
-                        u'name': 'instantiation',
-                        u'value': normalize_address_without_0x(decoded[1][u'params'][1][u'value'])
+                        'name': 'instantiation',
+                        'value': normalize_address_without_0x(decoded[1]['params'][1]['value'])
                     }
                 ]
             },

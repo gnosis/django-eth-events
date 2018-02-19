@@ -1,9 +1,11 @@
 # from celery.utils.log import get_task_logger
 import binascii
+
 from eth_abi import decode_abi
-from django_eth_events.utils import normalize_address_without_0x
 from ethereum.utils import sha3
+
 from .singleton import Singleton
+from .utils import normalize_address_without_0x
 
 # logger = get_task_logger(__name__)
 
@@ -19,12 +21,12 @@ class Decoder(Singleton):
     @staticmethod
     def get_method_id(item):
         method_header = None
-        if item.get(u'inputs'):
+        if item.get('inputs'):
             # Generate methodID and link it with the abi
-            method_header = "{}({})".format(item[u'name'],
-                                            ','.join(map(lambda input: input[u'type'], item[u'inputs'])))
+            method_header = "{}({})".format(item['name'],
+                                            ','.join(map(lambda input: input['type'], item['inputs'])))
         else:
-            method_header = "{}()".format(item[u'name'])
+            method_header = "{}()".format(item['name'])
 
         return binascii.hexlify(sha3(method_header)).decode('ascii')
 
@@ -37,7 +39,7 @@ class Decoder(Singleton):
         """
         added = 0
         for item in abi:
-            if item.get(u'name'):
+            if item.get('name'):
                 method_id = self.get_method_id(item)
                 self.methods[method_id] = item
                 added += 1
@@ -50,7 +52,7 @@ class Decoder(Singleton):
         :return: None
         """
         for item in abis:
-            if item.get(u'name'):
+            if item.get('name'):
                 method_id = self.get_method_id(item)
                 if self.methods.get(method_id):
                     del self.methods[method_id]
@@ -62,7 +64,7 @@ class Decoder(Singleton):
         :param log: ethereum log
         :return: dictionary of decoded parameters, decoding method reference
         """
-        method_id = log[u'topics'][0][2:]
+        method_id = log['topics'][0][2:]
 
         if method_id not in self.methods:
             raise LookupError("Unknown log topic.")
@@ -75,41 +77,43 @@ class Decoder(Singleton):
         data_types = []
 
         # get param types from properties not indexed
-        for param in method[u'inputs']:
-            if not param[u'indexed']:
-                data_types.append(param[u'type'])
+        for param in method['inputs']:
+            if not param['indexed']:
+                data_types.append(param['type'])
 
-        decoded_data = decode_abi(data_types, log[u'data'])
+        # decode_abi expect data in bytes format instead of str starting by 0x
+        log_data_bytes = bytes.fromhex(log['data'][2:])
+        decoded_data = decode_abi(data_types, log_data_bytes)
 
-        for param in method[u'inputs']:
+        for param in method['inputs']:
             decoded_p = {
-                u'name': param[u'name']
+                'name': param['name']
             }
-            if param[u'indexed']:
-                decoded_p[u'value'] = log[u'topics'][topics_i]
+            if param['indexed']:
+                decoded_p['value'] = log['topics'][topics_i]
                 topics_i += 1
             else:
-                decoded_p[u'value'] = decoded_data[data_i]
+                decoded_p['value'] = decoded_data[data_i]
                 data_i += 1
 
-            if u'[]' in param[u'type']:
-                if u'address' in param[u'type']:
-                    decoded_p[u'value'] = list([normalize_address_without_0x(account) for account in decoded_p[u'value']])
+            if '[]' in param['type']:
+                if 'address' in param['type']:
+                    decoded_p['value'] = list([normalize_address_without_0x(account) for account in decoded_p['value']])
                 else:
-                    decoded_p[u'value'] = list(decoded_p[u'value'])
-            elif u'address' == param[u'type']:
-                address = normalize_address_without_0x(decoded_p[u'value'])
+                    decoded_p['value'] = list(decoded_p['value'])
+            elif 'address' == param['type']:
+                address = normalize_address_without_0x(decoded_p['value'])
                 if len(address) == 40:
-                    decoded_p[u'value'] = address
+                    decoded_p['value'] = address
                 elif len(address) == 64:
-                    decoded_p[u'value'] = decoded_p[u'value'][26::]
+                    decoded_p['value'] = decoded_p['value'][26::]
 
             decoded_params.append(decoded_p)
 
         decoded_event = {
-            u'params': decoded_params,
-            u'name': method[u'name'],
-            u'address': normalize_address_without_0x(log[u'address'])
+            'params': decoded_params,
+            'name': method['name'],
+            'address': normalize_address_without_0x(log['address'])
         }
 
         return decoded_event

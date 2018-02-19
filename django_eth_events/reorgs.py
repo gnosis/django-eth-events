@@ -1,6 +1,6 @@
-from django_eth_events.models import Daemon, Block
-from django_eth_events.web3_service import Web3Service
-from django_eth_events.utils import remove_0x_head
+from .models import Daemon, Block
+from .utils import remove_0x_head
+from .web3_service import Web3Service
 
 
 class NetworkReorgException(Exception):
@@ -29,15 +29,15 @@ def check_reorg(provider=None):
     :raise UnknownBlockReorg
     :raise NoBackup
     """
-    web3 = None
     saved_block_number = Daemon.get_solo().block_number
 
+    web3 = None
     try:
         web3 = Web3Service(provider=provider).web3
         if web3.isConnected():
             current_block_number = web3.eth.blockNumber
         else:
-            raise Exception()
+            raise Exception('Web3 provider is not connected')
     except:
         raise NetworkReorgException('Unable to get block number from current node. Check the node is up and running.')
 
