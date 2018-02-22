@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/gnosis/django-eth-events.svg?branch=master)](https://travis-ci.org/gnosis/django-eth-events)
 [![Coverage Status](https://coveralls.io/repos/github/gnosis/django-eth-events/badge.svg?branch=feature%2Ftravis)](https://coveralls.io/github/gnosis/django-eth-events?branch=feature%2Ftravis)
+![Python 3.6](https://img.shields.io/badge/Python-3.6-blue.svg)
+![Django 2](https://img.shields.io/badge/Django-2-blue.svg)
 
 # django_eth_events
 A standalone Django app for decoding Ethereum events compatible with Python 2.7 and 3.x
