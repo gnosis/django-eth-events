@@ -1,23 +1,10 @@
+from .exceptions import (NetworkReorgException,
+                                          UnknownBlockReorgException,
+                                          NoBackupException,
+                                          Web3ConnectionError)
 from .models import Daemon, Block
 from .utils import remove_0x_head
 from .web3_service import Web3Service
-
-
-class NetworkReorgException(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
-
-
-class UnknownBlockReorg(Exception):
-    pass
-
-
-class NoBackup(Exception):
-    def __init__(self, message, errors):
-        super(NoBackup, self).__init__(message)
-
-        # Now for your custom code...
-        self.errors = errors
 
 
 def check_reorg(provider=None):
@@ -34,12 +21,12 @@ def check_reorg(provider=None):
     web3 = None
     try:
         web3 = Web3Service(provider=provider).web3
-        if web3.isConnected():
-            current_block_number = web3.eth.blockNumber
-        else:
-            raise Exception('Web3 provider is not connected')
+        current_block_number = web3.eth.blockNumber
     except:
-        raise NetworkReorgException('Unable to get block number from current node. Check the node is up and running.')
+        if not web3.isConnected():
+            raise Web3ConnectionError('Web3 provider is not connected')
+        else:
+            raise NetworkReorgException('Unable to get block number from current node. Check the node is up and running.')
 
     if current_block_number >= saved_block_number:
         # check last saved block hash haven't changed
@@ -50,7 +37,7 @@ def check_reorg(provider=None):
                 try:
                     node_block_hash = remove_0x_head(web3.eth.getBlock(block.block_number)['hash'])
                 except:
-                    raise UnknownBlockReorg
+                    raise UnknownBlockReorgException
                 if block.block_hash == node_block_hash:
                     # if is last saved block, no reorg
                     if block.block_number == saved_block_number:
@@ -65,7 +52,7 @@ def check_reorg(provider=None):
                 'current_block_number': current_block_number,
                 'las_saved_block_hash': blocks[0].block_hash
             }
-            raise NoBackup(message='Not enough backup blocks, reorg cannot be rollback', errors=errors)
+            raise NoBackupException(message='Not enough backup blocks, reorg cannot be rollback', errors=errors)
 
         else:
             # No backup data
@@ -79,7 +66,7 @@ def check_reorg(provider=None):
                 try:
                     node_block_hash = remove_0x_head(web3.eth.getBlock(block.block_number)['hash'])
                 except:
-                    raise UnknownBlockReorg
+                    raise UnknownBlockReorgException
                 if block.block_hash == node_block_hash:
                     # if is last saved block, no reorg
                     if block.block_number == saved_block_number:
@@ -94,7 +81,7 @@ def check_reorg(provider=None):
                 'current_block_number': current_block_number,
                 'las_saved_block_hash': blocks[0].block_hash
             }
-            raise NoBackup(message='Not enough backup blocks, reorg cannot be rollback', errors=errors)
+            raise NoBackupException(message='Not enough backup blocks, reorg cannot be rollback', errors=errors)
         else:
             # No backup data
             return False, None
