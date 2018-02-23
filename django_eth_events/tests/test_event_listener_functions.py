@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
+from django.test import TestCase
 from eth_tester import EthereumTester
 from web3.providers.eth_tester import EthereumTesterProvider
-
-from django.test import TestCase
 
 from ..event_listener import EventListener
 from ..factories import DaemonFactory

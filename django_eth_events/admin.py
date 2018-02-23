@@ -4,6 +4,5 @@ from solo.admin import SingletonModelAdmin
 
 from . import models
 
-
 admin.site.register(models.Daemon, SingletonModelAdmin)
 admin.site.register(models.Block)

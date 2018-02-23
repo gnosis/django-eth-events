@@ -1,6 +1,6 @@
 from json import loads
-from ..chainevents import AbstractEventReceiver
 
+from ..chainevents import AbstractEventReceiver
 
 abi = loads(
     '[{"inputs": [{"type": "address", "name": ""}], "constant": true, "name": "isInstantiation", "payable": false, '

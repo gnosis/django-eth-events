@@ -2,7 +2,6 @@ from django.db import models
 from model_utils.models import TimeStampedModel
 from solo.models import SingletonModel
 
-
 STATUS_CHOICES = (
     ('EXECUTING', 'Normal execution'),
     ('HALTED', 'System halted, there was an error'),

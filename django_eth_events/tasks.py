@@ -1,20 +1,19 @@
-from datetime import datetime, timedelta
 import errno
 import traceback
-from urllib3.exceptions import (
-    HTTPError, PoolError, LocationValueError
-)
+from datetime import datetime, timedelta
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
-from django.db import transaction
 from django.core.mail import mail_admins
+from django.db import transaction
 from requests.exceptions import RequestException
+from urllib3.exceptions import HTTPError, LocationValueError, PoolError
 
 from .event_listener import EventListener
-from .exceptions import UnknownBlock, UnknownTransaction
+from .exceptions import (NetworkReorgException, UnknownBlock,
+                         UnknownBlockReorgException, UnknownTransaction,
+                         Web3ConnectionError)
 from .models import Daemon
-from .exceptions import NetworkReorgException, UnknownBlockReorgException, Web3ConnectionError
 
 logger = get_task_logger(__name__)
 

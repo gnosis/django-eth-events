@@ -1,4 +1,5 @@
 import os
+
 from setuptools import find_packages, setup
 
 # allow setup.py to be run from any path

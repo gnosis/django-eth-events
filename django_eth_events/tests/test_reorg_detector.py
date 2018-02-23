@@ -5,16 +5,16 @@ from time import sleep
 
 from django.core.cache import cache
 from django.test import TestCase
-
 from eth_tester import EthereumTester
 from web3 import RPCProvider
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..chainevents import AbstractEventReceiver
+from ..exceptions import (NetworkReorgException, NoBackupException,
+                          Web3ConnectionError)
 from ..factories import DaemonFactory
 from ..models import Block, Daemon
 from ..reorgs import check_reorg
-from ..exceptions import NetworkReorgException, NoBackupException, Web3ConnectionError
 from ..web3_service import Web3Service
 from .mocked_testrpc_reorg import MockedTestrpc
 

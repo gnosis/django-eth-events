@@ -1,17 +1,16 @@
+from json import dumps, loads
+
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.utils.module_loading import import_string
 
-from .exceptions import UnknownBlock, UnknownTransaction, Web3ConnectionError
 from .decoder import Decoder
-from .models import Daemon, Block
+from .exceptions import UnknownBlock, UnknownTransaction, Web3ConnectionError
+from .models import Block, Daemon
 from .reorgs import check_reorg
-from .utils import (JsonBytesEncoder,
-                    remove_0x_head,
-                    normalize_address_without_0x)
+from .utils import (JsonBytesEncoder, normalize_address_without_0x,
+                    remove_0x_head)
 from .web3_service import Web3Service
-
-from json import dumps, loads
 
 logger = get_task_logger(__name__)
 
