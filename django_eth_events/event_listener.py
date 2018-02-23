@@ -1,26 +1,18 @@
+from json import dumps, loads
+
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.utils.module_loading import import_string
 
 from .decoder import Decoder
-from .models import Daemon, Block
+from .exceptions import UnknownBlock, UnknownTransaction, Web3ConnectionError
+from .models import Block, Daemon
 from .reorgs import check_reorg
-from .utils import (JsonBytesEncoder,
-                    remove_0x_head,
-                    normalize_address_without_0x)
+from .utils import (JsonBytesEncoder, normalize_address_without_0x,
+                    remove_0x_head)
 from .web3_service import Web3Service
 
-from json import dumps, loads
-
 logger = get_task_logger(__name__)
-
-
-class UnknownBlock(Exception):
-    pass
-
-
-class UnknownTransaction(Exception):
-    pass
 
 
 class SingletonListener(object):
@@ -74,15 +66,21 @@ class EventListener(object):
         :return: [int]
         """
         daemon = Daemon.get_solo()
-        current = self.web3.eth.blockNumber
+        try:
+            current_block_number = self.web3.eth.blockNumber
+        except Exception as e:
+            if not self.web3.isConnected():
+                raise Web3ConnectionError('Web3 provider is not connected')
+            else:
+                raise e
 
-        logger.info('blocks mined, daemon: {} current: {}'.format(daemon.block_number, current))
-        if daemon.block_number < current:
+        logger.info('blocks mined, daemon: {} current: {}'.format(daemon.block_number, current_block_number))
+        if daemon.block_number < current_block_number:
             max_blocks_to_process = int(getattr(settings, 'ETH_PROCESS_BLOCKS', '10000'))
-            if current - daemon.block_number > max_blocks_to_process:
+            if current_block_number - daemon.block_number > max_blocks_to_process:
                 blocks_to_update = range(daemon.block_number + 1, daemon.block_number + max_blocks_to_process)
             else:
-                blocks_to_update = range(daemon.block_number + 1, current + 1)
+                blocks_to_update = range(daemon.block_number + 1, current_block_number + 1)
             return blocks_to_update
         else:
             return []
@@ -103,7 +101,11 @@ class EventListener(object):
         try:
             block = self.web3.eth.getBlock(block_number)
         except:
-            raise UnknownBlock
+            if not self.web3.isConnected():
+                raise Web3ConnectionError('Web3 provider is not connected')
+            else:
+                raise UnknownBlock
+
         logs = []
 
         if block and block.get('hash'):
@@ -112,7 +114,10 @@ class EventListener(object):
                 try:
                     receipt = self.web3.eth.getTransactionReceipt(tx)
                 except:
-                    raise UnknownTransaction
+                    if not self.web3.isConnected():
+                        raise Web3ConnectionError('Web3 provider is not connected')
+                    else:
+                        raise UnknownTransaction
                 if receipt is None:
                     raise UnknownTransaction
                 if receipt.get('logs'):
@@ -208,7 +213,9 @@ class EventListener(object):
             # get blocks and decode logs
             last_mined_blocks = self.get_last_mined_blocks()
             if len(last_mined_blocks):
-                logger.info('{} blocks mined from {} to {}'.format(len(last_mined_blocks), last_mined_blocks[0], last_mined_blocks[-1]))
+                logger.info('{} blocks mined from {} to {}'.format(len(last_mined_blocks),
+                                                                   last_mined_blocks[0],
+                                                                   last_mined_blocks[-1]))
             else:
                 logger.info('no blocks mined')
             for block in last_mined_blocks:

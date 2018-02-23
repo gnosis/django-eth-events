@@ -1,20 +1,19 @@
-from datetime import datetime, timedelta
 import errno
 import traceback
-from urllib3.exceptions import (
-    HTTPError, PoolError, LocationValueError
-)
+from datetime import datetime, timedelta
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
-from django.db import transaction
 from django.core.mail import mail_admins
+from django.db import transaction
 from requests.exceptions import RequestException
+from urllib3.exceptions import HTTPError, LocationValueError, PoolError
 
-from .event_listener import EventListener, UnknownBlock, UnknownTransaction
+from .event_listener import EventListener
+from .exceptions import (NetworkReorgException, UnknownBlock,
+                         UnknownBlockReorgException, UnknownTransaction,
+                         Web3ConnectionError)
 from .models import Daemon
-from .reorgs import UnknownBlockReorg, NetworkReorgException
-
 
 logger = get_task_logger(__name__)
 
@@ -47,10 +46,12 @@ def event_listener(provider=None):
             logger.error('Unknown Transaction hash, might be a reorg')
         except UnknownBlock:
             logger.error('Unknown Block hash, might be a reorg')
-        except UnknownBlockReorg:
+        except UnknownBlockReorgException:
             logger.error('Unknown Block hash, might be a reorg')
         except NetworkReorgException as nrex:
             logger.error('An error occurred while calling ethereum node on reorgs checker. %s' % nrex.message)
+        except Web3ConnectionError:
+            logger.error('Web3 cannot connect to providers')
         except Exception as err:
             # Not halting system for connection error cases
             if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED

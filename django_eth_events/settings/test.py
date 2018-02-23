@@ -1,4 +1,4 @@
-from django_eth_events.settings.base import *
+from .base import *
 
 SECRET_KEY = 'testtest'
 DEBUG = True

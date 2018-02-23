@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from json import loads
 import os
+from json import loads
 
 from django.test import TestCase
 from eth_tester import EthereumTester
@@ -8,11 +8,10 @@ from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..event_listener import EventListener
 from ..factories import DaemonFactory
-from ..models import Daemon, Block
+from ..models import Block, Daemon
 from ..utils import remove_0x_head
 from ..web3_service import Web3Service
-from .utils import (CentralizedOracle,
-                    centralized_oracle_abi,
+from .utils import (CentralizedOracle, centralized_oracle_abi,
                     centralized_oracle_bytecode)
 
 

@@ -1,6 +1,6 @@
 from json import loads
-from django_eth_events.chainevents import AbstractEventReceiver
 
+from ..chainevents import AbstractEventReceiver
 
 abi = loads(
     '[{"inputs": [{"type": "address", "name": ""}], "constant": true, "name": "isInstantiation", "payable": false, '

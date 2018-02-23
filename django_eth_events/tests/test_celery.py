@@ -2,15 +2,14 @@
 import os
 from time import sleep
 
-from django.test import TestCase
 from django.conf import settings
-
+from django.test import TestCase
 from eth_tester import EthereumTester
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..chainevents import AbstractEventReceiver
 from ..factories import DaemonFactory
-from ..models import Daemon, Block
+from ..models import Block, Daemon
 from ..tasks import deadlock_checker, event_listener
 from ..web3_service import Web3Service
 from .utils import centralized_oracle_abi, centralized_oracle_bytecode
