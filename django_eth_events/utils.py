@@ -6,7 +6,7 @@ from eth_utils import to_normalized_address
 def remove_0x_head(s):
     """
     Better use from django_eth_events.utils import remove_0x_head,
-    but in pyEthereum version <= 1.6.1 is bugged for Python3
+    because in pyEthereum version <= 1.6.1 is bugged for Python3
     """
     return s[2:] if s[:2] in (b'0x', '0x') else s
 

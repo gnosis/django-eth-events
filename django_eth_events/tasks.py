@@ -11,10 +11,10 @@ from django.db import transaction
 from django.core.mail import mail_admins
 from requests.exceptions import RequestException
 
-from .event_listener import EventListener, UnknownBlock, UnknownTransaction
+from .event_listener import EventListener
+from .exceptions import UnknownBlock, UnknownTransaction
 from .models import Daemon
-from .reorgs import UnknownBlockReorg, NetworkReorgException
-
+from .exceptions import NetworkReorgException, UnknownBlockReorgException, Web3ConnectionException
 
 logger = get_task_logger(__name__)
 
@@ -47,10 +47,12 @@ def event_listener(provider=None):
             logger.error('Unknown Transaction hash, might be a reorg')
         except UnknownBlock:
             logger.error('Unknown Block hash, might be a reorg')
-        except UnknownBlockReorg:
+        except UnknownBlockReorgException:
             logger.error('Unknown Block hash, might be a reorg')
         except NetworkReorgException as nrex:
             logger.error('An error occurred while calling ethereum node on reorgs checker. %s' % nrex.message)
+        except Web3ConnectionException:
+            logger.error('Web3 cannot connect to providers')
         except Exception as err:
             # Not halting system for connection error cases
             if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED
