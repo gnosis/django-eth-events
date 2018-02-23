@@ -1,8 +1,6 @@
-from .exceptions import (NetworkReorgException,
-                                          UnknownBlockReorgException,
-                                          NoBackupException,
-                                          Web3ConnectionException)
-from .models import Daemon, Block
+from .exceptions import (NetworkReorgException, NoBackupException,
+                         UnknownBlockReorgException, Web3ConnectionException)
+from .models import Block, Daemon
 from .utils import remove_0x_head
 from .web3_service import Web3Service
 
