@@ -5,15 +5,16 @@ from time import sleep
 
 from django.core.cache import cache
 from django.test import TestCase
-
 from eth_tester import EthereumTester
 from web3 import RPCProvider
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..chainevents import AbstractEventReceiver
+from ..exceptions import (NetworkReorgException, NoBackupException,
+                          Web3ConnectionException)
 from ..factories import DaemonFactory
 from ..models import Block, Daemon
-from ..reorgs import check_reorg, NoBackup, NetworkReorgException
+from ..reorgs import check_reorg
 from ..web3_service import Web3Service
 from .mocked_testrpc_reorg import MockedTestrpc
 
@@ -131,13 +132,13 @@ class TestReorgDetector(TestCase):
         block_hash_reorg = '{:040d}'.format(1313)
         Block.objects.create(block_hash=block_hash_reorg, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
-        self.assertRaises(NoBackup, check_reorg)
+        self.assertRaises(NoBackupException, check_reorg)
 
-    def test_network_reorg_exception(self):
+    def test_network_connection_exception(self):
         (had_reorg, _) = check_reorg()
         self.assertFalse(had_reorg)
         self.server_process.terminate()
-        self.assertRaises(NetworkReorgException, check_reorg)
+        self.assertRaises(Web3ConnectionException, check_reorg)
 
     def test_reorg_mined_multiple_blocks_ok(self):
         # Last block hash haven't changed
@@ -208,7 +209,7 @@ class TestReorgDetector(TestCase):
         Block.objects.create(block_hash='wrong block', block_number=0, timestamp=0)
         Daemon.objects.all().update(block_number=3)
         # No common block
-        self.assertRaises(NoBackup, check_reorg)
+        self.assertRaises(NoBackupException, check_reorg)
 
         Block.objects.filter(block_number=0).update(block_hash=block_hash_0)
 

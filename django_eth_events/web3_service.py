@@ -1,5 +1,5 @@
 from django.conf import settings
-from web3 import Web3, RPCProvider
+from web3 import RPCProvider, Web3
 
 
 class Web3Service(object):

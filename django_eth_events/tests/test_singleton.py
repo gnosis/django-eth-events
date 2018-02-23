@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.test import TestCase
-
 from eth_tester import EthereumTester
-from web3 import RPCProvider, IPCProvider
+from web3 import IPCProvider, RPCProvider
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..event_listener import EventListener
