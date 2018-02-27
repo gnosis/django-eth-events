@@ -10,6 +10,6 @@ install:
   - pip install -r requirements.txt
   - pip install coveralls
 script:
-  - python django_eth_events/manage.py test && coverage run --source=django_eth_events django_eth_events/manage.py test
+  - coverage run --source=django_eth_events django_eth_events/manage.py test
 after_success:
   - coveralls
