@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/gnosis/django-eth-events.svg?branch=master)](https://travis-ci.org/gnosis/django-eth-events)
-[![Coverage Status](https://coveralls.io/repos/github/gnosis/django-eth-events/badge.svg?branch=feature%2Ftravis)](https://coveralls.io/github/gnosis/django-eth-events?branch=feature%2Ftravis)
+[![Coverage Status](https://coveralls.io/repos/github/gnosis/django-eth-events/badge.svg?branch=master)](https://coveralls.io/github/gnosis/django-eth-events?branch=master)
 ![Python 3.6](https://img.shields.io/badge/Python-3.6-blue.svg)
 ![Django 2](https://img.shields.io/badge/Django-2-blue.svg)
 [![PyPI version](https://badge.fury.io/py/django-eth-events.svg)](https://badge.fury.io/py/django-eth-events)
