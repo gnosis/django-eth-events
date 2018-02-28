@@ -1,6 +1,8 @@
 # ------------------------------------------------------------------------------
 # ETHEREUM CONFIGURATION
 # ------------------------------------------------------------------------------
+# If IPC_PATH is set, ETHEREUM_NODE_HOST and ETHEREUM_NODE_PORT are not used
+# ETHEREUM_IPC_PATH = 'path/to/ipc'
 ETHEREUM_NODE_HOST = 'https://mainnet.infura.io'
 ETHEREUM_NODE_PORT = 8545
 ETHEREUM_NODE_SSL = 1
