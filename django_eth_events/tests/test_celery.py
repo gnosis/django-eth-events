@@ -26,7 +26,6 @@ class DummyEventReceiver(AbstractEventReceiver):
 class TestCelery(TestCase):
 
     def setUp(self):
-        os.environ.update({'TESTRPC_GAS_LIMIT': '10000000000'})
         self.web3 = Web3Service(provider=EthereumTesterProvider(EthereumTester())).web3
         self.provider = self.web3.providers[0]
         self.web3.eth.defaultAccount = self.web3.eth.coinbase
@@ -85,6 +84,7 @@ class TestCelery(TestCase):
         event_listener(self.provider)
         # Do checks
         daemon = Daemon.get_solo()
+        self.assertEqual(daemon.status, 'EXECUTING')
         self.assertEqual(daemon.block_number, daemon_factory.block_number + 2)
         self.assertEqual(Block.objects.all().count(), n_blocks + 2)
         self.assertFalse(daemon.listener_lock)

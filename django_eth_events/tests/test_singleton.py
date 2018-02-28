@@ -60,10 +60,12 @@ class TestSingleton(TestCase):
         self.assertNotEqual(listener2, listener3)
 
         # For a different contract we need a different instance of the singleton even if provider is the same
-        contract_map = {'NAME': 'Tester Oracle Factory', 'EVENT_ABI': [],
-                        'EVENT_DATA_RECEIVER': 'django_eth_events.tests.test_celery.DummyEventReceiver',
-                        'ADDRESSES': ['c305c901078781C232A2a521C2aF7980f8385ee9']
-                        }
+        contract_map = [
+            {'NAME': 'Tester Oracle Factory', 'EVENT_ABI': [],
+             'EVENT_DATA_RECEIVER': 'django_eth_events.tests.test_celery.DummyEventReceiver',
+             'ADDRESSES': ['c305c901078781C232A2a521C2aF7980f8385ee9']
+             }
+        ]
         listener4 = EventListener(provider=ipc_provider, contract_map=contract_map)
         self.assertNotEqual(listener3, listener4)
         listener5 = EventListener(provider=ipc_provider, contract_map=contract_map)

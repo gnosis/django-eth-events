@@ -37,7 +37,7 @@ CELERY_ACCEPT_CONTENT = ['application/json']
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERYD_MAX_TASKS_PER_CHILD = 1000
-CELERY_LOCK_EXPIRE = 60 # 1 minute
+CELERY_LOCK_EXPIRE = 60  # 1 minute
 
 # ------------------------------------------------------------------------------
 # IPFS CONFIGURATION

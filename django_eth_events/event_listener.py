@@ -29,7 +29,7 @@ class SingletonListener(object):
         provider = kwargs.get('provider', None)
 
         different_provider = self.instance and provider and not isinstance(provider, self.instance.provider.__class__)
-        different_contract = self.instance and contract_map and (contract_map != self.instance.contract_map)
+        different_contract = self.instance and contract_map and (contract_map != self.instance.original_contract_map)
 
         if different_provider or different_contract:
             self.instance = self.klass(contract_map=contract_map, provider=provider)
@@ -49,9 +49,29 @@ class EventListener(object):
         self.web3 = Web3Service(provider=provider).web3  # Gets transaction and block info from ethereum
 
         if not contract_map:
+            # Taken from settings, it's the contracts we listen to
             contract_map = settings.ETH_EVENTS
 
-        self.contract_map = contract_map  # Taken from settings, it's the contracts we listen to
+        self.original_contract_map = contract_map
+        self.contract_map = self.parse_contract_map(contract_map) if contract_map else contract_map
+
+    def parse_contract_map(self, contract_map):
+        contracts_parsed = []
+        for contract in contract_map:
+            contract_parsed = contract.copy()
+            if 'ADDRESSES_GETTER' in contract:
+                contract_parsed['ADDRESSES_GETTER_CLASS'] = self.import_class_from_string(contract['ADDRESSES_GETTER'])
+            contract_parsed['EVENT_DATA_RECEIVER_CLASS'] = self.import_class_from_string(contract['EVENT_DATA_RECEIVER'])
+            contracts_parsed.append(contract_parsed)
+        return contracts_parsed
+
+    def import_class_from_string(self, class_string):
+        try:
+            return import_string(class_string)
+        except ImportError as err:
+            logger.error("Cannot load class for contract: {}", err.msg)
+            raise err
+
 
     @property
     def provider(self):
@@ -132,8 +152,8 @@ class EventListener(object):
         try:
             if contract.get('ADDRESSES'):
                 addresses = contract['ADDRESSES']
-            elif contract.get('ADDRESSES_GETTER'):
-                addresses_getter = import_string(contract['ADDRESSES_GETTER'])
+            elif contract.get('ADDRESSES_GETTER_CLASS'):
+                addresses_getter = contract['ADDRESSES_GETTER_CLASS']
                 addresses = addresses_getter().get_addresses()
         except Exception as e:
             logger.error(e)
@@ -144,7 +164,7 @@ class EventListener(object):
         return normalized_addresses
 
     def save_event(self, contract, decoded_log, block_info):
-        EventReceiver = import_string(contract['EVENT_DATA_RECEIVER'])
+        EventReceiver = contract['EVENT_DATA_RECEIVER_CLASS']
         instance = EventReceiver().save(decoded_event=decoded_log, block_info=block_info)
         return instance
 
