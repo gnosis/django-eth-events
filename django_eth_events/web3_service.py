@@ -1,5 +1,5 @@
 from django.conf import settings
-from web3 import IPCProvider, RPCProvider, Web3
+from web3 import HTTPProvider, IPCProvider, Web3
 
 
 class Web3Service(object):
@@ -11,7 +11,7 @@ class Web3Service(object):
 
     class __Web3Service:
         web3 = None
-        default_provider_class = RPCProvider
+        default_provider_class = HTTPProvider
 
         def __init__(self, provider=None):
             if not provider:
@@ -22,11 +22,11 @@ class Web3Service(object):
                         ipc_path=settings.ETHEREUM_IPC_PATH
                     )
                 else:
-                    provider = self.default_provider_class(
-                        host=settings.ETHEREUM_NODE_HOST,
-                        port=settings.ETHEREUM_NODE_PORT,
-                        ssl=settings.ETHEREUM_NODE_SSL
-                    )
+                    protocol = 'https' if settings.ETHEREUM_NODE_SSL else 'http'
+                    endpoint_uri = "{}://{}:{}".format(protocol,
+                                                       settings.ETHEREUM_NODE_HOST,
+                                                       settings.ETHEREUM_NODE_PORT)
+                    provider = self.default_provider_class(endpoint_uri)
 
             self.web3 = Web3(provider)
 

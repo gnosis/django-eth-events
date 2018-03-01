@@ -6,7 +6,7 @@ from time import sleep
 from django.core.cache import cache
 from django.test import TestCase
 from eth_tester import EthereumTester
-from web3 import RPCProvider
+from web3 import HTTPProvider
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..chainevents import AbstractEventReceiver
@@ -48,12 +48,8 @@ class TestReorgDetector(TestCase):
         cache.set('block_number', '0x0')
         sleep(1)
         print('served')
-        self.rpc = RPCProvider(
-            host='127.0.0.1',
-            port='8545',
-            ssl=0
-        )
-        self.web3 = Web3Service(self.rpc).web3
+        self.provider = HTTPProvider('http://localhost:8545')
+        self.web3 = Web3Service(self.provider).web3
         # Mock web3
         self.daemon = DaemonFactory()
 
