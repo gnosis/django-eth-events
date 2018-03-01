@@ -15,7 +15,8 @@ class Web3Service(object):
 
         def __init__(self, provider=None):
             if not provider:
-                if hasattr(settings, 'ETHEREUM_IPC_PATH') and settings.ETHEREUM_IPC_PATH:
+                ethereum_ipc_path = getattr(settings, 'ETHEREUM_IPC_PATH', None)
+                if ethereum_ipc_path:
                     self.default_provider_class = IPCProvider
                     provider = self.default_provider_class(
                         ipc_path=settings.ETHEREUM_IPC_PATH
