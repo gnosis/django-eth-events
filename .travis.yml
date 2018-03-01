@@ -2,14 +2,12 @@ language: python
 python:
   - "3.6"
 dist: trusty
-env:
-  - DJANGO_SETTINGS_MODULE=settings.test PIP_USE_MIRRORS=true
 before_install:
-  - export PYTHONPATH="$HOME/build/gnosis/django-eth-events"
+  - export PYTHONPATH="$HOME/build/gnosis/django-eth-events" PIP_USE_MIRRORS=true
 install:
   - pip install -r requirements.txt
   - pip install coveralls
 script:
-  - coverage run --source=django_eth_events django_eth_events/manage.py test
+  - coverage run --source=django_eth_events django_eth_events/manage.py test --settings=settings.test
 after_success:
   - coveralls
