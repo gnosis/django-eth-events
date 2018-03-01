@@ -17,7 +17,6 @@ from .utils import (CentralizedOracle, centralized_oracle_abi,
 
 class TestDaemonExec(TestCase):
     def setUp(self):
-        os.environ.update({'TESTRPC_GAS_LIMIT': '10000000000'})
         self.web3 = Web3Service(provider=EthereumTesterProvider(EthereumTester())).web3
         self.provider = self.web3.providers[0]
         self.web3.eth.defaultAccount = self.web3.eth.coinbase
