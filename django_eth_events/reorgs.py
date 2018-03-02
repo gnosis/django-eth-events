@@ -1,3 +1,5 @@
+import socket
+
 from .exceptions import (NetworkReorgException, NoBackupException,
                          UnknownBlockReorgException, Web3ConnectionException)
 from .models import Block, Daemon
@@ -21,10 +23,13 @@ def check_reorg(daemon_block_number, current_block_number=None, provider=None):
         web3 = Web3Service(provider=provider).web3
         current_block_number = current_block_number if current_block_number else web3.eth.blockNumber
     except:
-        if not web3.isConnected():
-            raise Web3ConnectionException('Web3 provider is not connected')
-        else:
-            raise NetworkReorgException('Unable to get block number from current node. Check the node is up and running.')
+        try:
+            if not web3.isConnected():
+                raise Web3ConnectionException('Web3 provider is not connected')
+            else:
+                raise NetworkReorgException('Unable to get block number from current node. Check the node is up and running.')
+        except socket.timeout:
+            raise Web3ConnectionException('Web3 provider is not connected. Socket timeout')
 
     if current_block_number >= daemon_block_number:
         # check last saved block hash haven't changed

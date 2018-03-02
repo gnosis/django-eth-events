@@ -1,4 +1,5 @@
 from json import dumps, loads
+import socket
 
 from celery.utils.log import get_task_logger
 from django.conf import settings
@@ -85,10 +86,13 @@ class EventListener(object):
         try:
             return self.web3.eth.blockNumber
         except Exception as e:
-            if not self.web3.isConnected():
-                raise Web3ConnectionException('Web3 provider is not connected')
-            else:
-                raise e
+            try:
+                if not self.web3.isConnected():
+                    raise Web3ConnectionException('Web3 provider is not connected')
+                else:
+                    raise e
+            except socket.timeout:
+                raise Web3ConnectionException('Web3 provider is not connected. Socket timeout')
 
     @staticmethod
     def next_block(cls):
@@ -126,10 +130,13 @@ class EventListener(object):
         try:
             block = self.web3.eth.getBlock(block_number)
         except:
-            if not self.web3.isConnected():
-                raise Web3ConnectionException('Web3 provider is not connected')
-            else:
-                raise UnknownBlock
+            try:
+                if not self.web3.isConnected():
+                    raise Web3ConnectionException('Web3 provider is not connected')
+                else:
+                    raise UnknownBlock
+            except socket.timeout:
+                raise Web3ConnectionException('Web3 provider is not connected. Socket timeout')
 
         logs = []
 
@@ -139,10 +146,14 @@ class EventListener(object):
                 try:
                     receipt = self.web3.eth.getTransactionReceipt(tx)
                 except:
-                    if not self.web3.isConnected():
-                        raise Web3ConnectionException('Web3 provider is not connected')
-                    else:
-                        raise UnknownTransaction
+                    try:
+                        if not self.web3.isConnected():
+                            raise Web3ConnectionException('Web3 provider is not connected')
+                        else:
+                            raise UnknownTransaction
+                    except socket.timeout:
+                        raise Web3ConnectionException('Web3 provider is not connected. Socket timeout')
+
                 if receipt is None:
                     raise UnknownTransaction
                 if receipt.get('logs'):
