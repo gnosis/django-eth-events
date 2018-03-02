@@ -20,11 +20,10 @@ class Decoder(Singleton):
 
     @staticmethod
     def get_method_id(item):
-        method_header = None
         if item.get('inputs'):
             # Generate methodID and link it with the abi
             method_header = "{}({})".format(item['name'],
-                                            ','.join(map(lambda input: input['type'], item['inputs'])))
+                                            ','.join(map(lambda method_input: method_input['type'], item['inputs'])))
         else:
             method_header = "{}()".format(item['name'])
 

@@ -80,7 +80,7 @@ class TestReorgDetector(TestCase):
         cache.set('block_number', '0x1')
         Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
         Daemon.objects.all().update(block_number=0)
-        (had_reorg, _) = check_reorg()
+        (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
 
         block_hash_1 = '{:040d}'.format(1)
@@ -88,7 +88,7 @@ class TestReorgDetector(TestCase):
         cache.set('block_number', '0x2')
         Block.objects.create(block_hash=block_hash_1, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
-        (had_reorg, _) = check_reorg()
+        (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
 
     def test_reorg_happened(self):
@@ -98,7 +98,7 @@ class TestReorgDetector(TestCase):
         cache.set('block_number', '0x1')
         Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
         Daemon.objects.all().update(block_number=0)
-        (had_reorg, _) = check_reorg()
+        (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
 
         # Last block hash changed
@@ -108,12 +108,12 @@ class TestReorgDetector(TestCase):
         block_hash_reorg = '{:040d}'.format(1313)
         Block.objects.create(block_hash=block_hash_reorg, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
-        (had_reorg, block_number) = check_reorg()
+        (had_reorg, block_number) = check_reorg(Daemon.get_solo().block_number)
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 0)
 
         Block.objects.filter(block_number=1).update(block_hash=block_hash_1, timestamp=0)
-        (had_reorg, _) = check_reorg()
+        (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
 
     def test_reorg_exception(self):
@@ -128,13 +128,13 @@ class TestReorgDetector(TestCase):
         block_hash_reorg = '{:040d}'.format(1313)
         Block.objects.create(block_hash=block_hash_reorg, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
-        self.assertRaises(NoBackupException, check_reorg)
+        self.assertRaises(NoBackupException, check_reorg, Daemon.get_solo().block_number)
 
     def test_network_connection_exception(self):
-        (had_reorg, _) = check_reorg()
+        (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
         self.server_process.terminate()
-        self.assertRaises(Web3ConnectionException, check_reorg)
+        self.assertRaises(Web3ConnectionException, check_reorg, Daemon.get_solo().block_number)
 
     def test_reorg_mined_multiple_blocks_ok(self):
         # Last block hash haven't changed
@@ -143,7 +143,7 @@ class TestReorgDetector(TestCase):
         cache.set('block_number', '0x1')
         Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
         Daemon.objects.all().update(block_number=0)
-        (had_reorg, _) = check_reorg()
+        (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
 
         # new block number changed more than one unit
@@ -152,7 +152,7 @@ class TestReorgDetector(TestCase):
         cache.set('block_number', '0x9')
         Block.objects.create(block_hash=block_hash_1, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
-        (had_reorg, _) = check_reorg()
+        (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
 
     def test_mined_multiple_blocks_with_reorg(self):
@@ -162,7 +162,7 @@ class TestReorgDetector(TestCase):
         cache.set('block_number', '0x1')
         Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
         Daemon.objects.all().update(block_number=0)
-        (had_reorg, _) = check_reorg()
+        (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
 
         # Last block hash changed
@@ -172,7 +172,7 @@ class TestReorgDetector(TestCase):
         block_hash_reorg = '{:040d}'.format(1313)
         Block.objects.create(block_hash=block_hash_reorg, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
-        (had_reorg, block_number) = check_reorg()
+        (had_reorg, block_number) = check_reorg(Daemon.get_solo().block_number)
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 0)
 
@@ -181,19 +181,19 @@ class TestReorgDetector(TestCase):
         cache.set('block_number', '0x9')
         Block.objects.create(block_hash=block_hash_2, block_number=2, timestamp=0)
         Daemon.objects.all().update(block_number=2)
-        (had_reorg, block_number) = check_reorg()
+        (had_reorg, block_number) = check_reorg(Daemon.get_solo().block_number)
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 0)
 
         Block.objects.filter(block_number=1).update(block_hash=block_hash_1)
 
-        (had_reorg, block_number) = check_reorg()
+        (had_reorg, block_number) = check_reorg(Daemon.get_solo().block_number)
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 1)
 
         Block.objects.filter(block_number=2).update(block_hash=block_hash_2)
         cache.set('0x2', block_hash_2)
-        (had_reorg, block_number) = check_reorg()
+        (had_reorg, block_number) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
 
     def test_reorg_block_number_decreased(self):
@@ -205,7 +205,7 @@ class TestReorgDetector(TestCase):
         Block.objects.create(block_hash='wrong block', block_number=0, timestamp=0)
         Daemon.objects.all().update(block_number=3)
         # No common block
-        self.assertRaises(NoBackupException, check_reorg)
+        self.assertRaises(NoBackupException, check_reorg, Daemon.get_solo().block_number)
 
         Block.objects.filter(block_number=0).update(block_hash=block_hash_0)
 
@@ -213,13 +213,13 @@ class TestReorgDetector(TestCase):
         cache.set('0x1', block_hash_1)
         cache.set('block_number', '0x2')
         Block.objects.create(block_hash=block_hash_1, block_number=1, timestamp=0)
-        (had_reorg, block_number) = check_reorg()
+        (had_reorg, block_number) = check_reorg(Daemon.get_solo().block_number)
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 1)
 
         cache.set('0x1', 'reorg_hash')
 
-        (had_reorg, block_number) = check_reorg()
+        (had_reorg, block_number) = check_reorg(Daemon.get_solo().block_number)
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 0)
 
@@ -229,7 +229,7 @@ class TestReorgDetector(TestCase):
         ethereum_tester = EthereumTester()
         ethereum_tester_provider = EthereumTesterProvider(ethereum_tester)
         # Run check_reorg, should not raise exceptions
-        (had_reorg, block_number) = check_reorg(provider=ethereum_tester_provider)
+        (had_reorg, block_number) = check_reorg(Daemon.get_solo().block_number, provider=ethereum_tester_provider)
         self.assertFalse(had_reorg)
         # Reset genesis block to simulate reorg
         ethereum_tester.reset_to_genesis()
@@ -254,5 +254,5 @@ class TestReorgDetector(TestCase):
         Block.objects.create(block_hash=block_hash_reorg, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
 
-        (had_reorg, block_number) = check_reorg()
+        (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertTrue(had_reorg)

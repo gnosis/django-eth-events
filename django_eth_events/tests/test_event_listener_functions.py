@@ -5,6 +5,7 @@ from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..event_listener import EventListener
 from ..factories import DaemonFactory
+from ..models import Daemon
 from ..utils import normalize_address_without_0x
 from .utils import abi, bin_hex
 
@@ -23,15 +24,22 @@ class TestDaemon(TestCase):
         self.assertEqual(0, self.bot.web3.eth.blockNumber)
 
     def test_next_block(self):
-        self.assertListEqual(list(self.bot.get_last_mined_blocks()), [])
+        daemon = Daemon.get_solo()
+        self.assertListEqual(list(self.bot.get_last_mined_blocks(daemon.block_number,
+                                                                 self.bot.get_current_block_number())),
+                             [])
         factory = self.bot.web3.eth.contract(abi, bytecode=bin_hex)
         tx_hash = factory.deploy()
         self.bot.web3.eth.getTransactionReceipt(tx_hash)
         tx_hash2 = factory.deploy()
         self.bot.web3.eth.getTransactionReceipt(tx_hash2)
-        self.assertEqual(list(self.bot.get_last_mined_blocks()), [1, 2])
-        self.bot.update_block_number(2)
-        self.assertEqual(list(self.bot.get_last_mined_blocks()), [])
+        self.assertEqual(list(self.bot.get_last_mined_blocks(daemon.block_number,
+                                                             self.bot.get_current_block_number())),
+                         [1, 2])
+        self.bot.update_block_number(daemon, 2)
+        self.assertEqual(list(self.bot.get_last_mined_blocks(daemon.block_number,
+                                                             self.bot.get_current_block_number())),
+                         [])
 
     def test_load_abis(self):
         self.assertIsNotNone(self.bot.decoder)
@@ -73,9 +81,14 @@ class TestDaemon(TestCase):
         tx_hash = factory_instance.transact().create(owners, required_confirmations, daily_limit)
         receipt = self.bot.web3.eth.getTransactionReceipt(tx_hash)
         self.assertIsNotNone(receipt)
-        self.assertListEqual(list(self.bot.get_last_mined_blocks()), [1, 2])
-        self.bot.update_block_number(2)
-        self.assertListEqual(list(self.bot.get_last_mined_blocks()), [])
+        daemon = Daemon.get_solo()
+        self.assertEqual(list(self.bot.get_last_mined_blocks(daemon.block_number,
+                                                             self.bot.get_current_block_number())),
+                         [1, 2])
+        self.bot.update_block_number(daemon, 2)
+        self.assertEqual(list(self.bot.get_last_mined_blocks(daemon.block_number,
+                                                             self.bot.get_current_block_number())),
+                         [])
         logs, block_info = self.bot.get_logs(self.bot.web3.eth.blockNumber)
         self.assertEqual(2, len(logs))
         decoded = self.bot.decoder.decode_logs(logs)

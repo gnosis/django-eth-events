@@ -56,6 +56,11 @@ class EventListener(object):
         self.contract_map = self.parse_contract_map(contract_map) if contract_map else contract_map
 
     def parse_contract_map(self, contract_map):
+        """
+        Resolves contracts string to their corresponding classes
+        :param contract_map: list of dictionaries
+        :return: parsed list of dictionaries
+        """
         contracts_parsed = []
         for contract in contract_map:
             contract_parsed = contract.copy()
@@ -72,42 +77,41 @@ class EventListener(object):
             logger.error("Cannot load class for contract: {}", err.msg)
             raise err
 
-
     @property
     def provider(self):
         return self.web3.providers[0]
 
-    @staticmethod
-    def next_block(cls):
-        return Daemon.get_solo().block_number
-
-    def get_last_mined_blocks(self):
-        """
-        Returns the block numbers of blocks mined since last event_listener execution
-        :return: [int]
-        """
-        daemon = Daemon.get_solo()
+    def get_current_block_number(self):
         try:
-            current_block_number = self.web3.eth.blockNumber
+            return self.web3.eth.blockNumber
         except Exception as e:
             if not self.web3.isConnected():
                 raise Web3ConnectionException('Web3 provider is not connected')
             else:
                 raise e
 
-        logger.info('blocks mined, daemon: {} current: {}'.format(daemon.block_number, current_block_number))
-        if daemon.block_number < current_block_number:
+    @staticmethod
+    def next_block(cls):
+        return Daemon.get_solo().block_number
+
+    def get_last_mined_blocks(self, daemon_block_number, current_block_number):
+        """
+        Returns a range with the block numbers of blocks mined since last event_listener execution
+        :return: [int]
+        """
+        logger.info('Blocks mined, daemon: {} current: {}'.format(daemon_block_number, current_block_number))
+        if daemon_block_number < current_block_number:
             max_blocks_to_process = int(getattr(settings, 'ETH_PROCESS_BLOCKS', '10000'))
-            if current_block_number - daemon.block_number > max_blocks_to_process:
-                blocks_to_update = range(daemon.block_number + 1, daemon.block_number + max_blocks_to_process)
+            if current_block_number - daemon_block_number > max_blocks_to_process:
+                blocks_to_update = range(daemon_block_number + 1, daemon_block_number + max_blocks_to_process)
             else:
-                blocks_to_update = range(daemon.block_number + 1, current_block_number + 1)
+                blocks_to_update = range(daemon_block_number + 1, current_block_number + 1)
             return blocks_to_update
         else:
-            return []
+            return range(0)
 
-    def update_block_number(self, block_number):
-        daemon = Daemon.get_solo()
+    def update_block_number(self, daemon, block_number):
+        logger.info('Update daemon block_number={}'.format(block_number))
         daemon.block_number = block_number
         daemon.save()
 
@@ -131,7 +135,7 @@ class EventListener(object):
 
         if block and block.get('hash'):
             for tx in block['transactions']:
-                # receipt sometimes is none, might be because a reorg, we exit the loop with a controlled exeception
+                # receipt sometimes is none, might be because a reorg, we exit the loop with a controlled exception
                 try:
                     receipt = self.web3.eth.getTransactionReceipt(tx)
                 except:
@@ -172,13 +176,19 @@ class EventListener(object):
         EventReceiver = import_string(event_receiver_string)
         EventReceiver().rollback(decoded_event=decoded_event, block_info=block_info)
 
-    def rollback(self, block_number):
+    def rollback(self, daemon, block_number):
+        """
+        Rollback blocks and set daemon block_number to current one
+        :param daemon:
+        :param block_number:
+        :return:
+        """
         # get all blocks to rollback
         blocks = Block.objects.filter(block_number__gt=block_number).order_by('-block_number')
-        logger.info('rolling back {} blocks, until block number {}'.format(blocks.count(), block_number))
+        logger.warning('Rolling back {} blocks, until block number {}'.format(blocks.count(), block_number))
         for block in blocks:
             decoded_logs = loads(block.decoded_logs)
-            logger.info('rolling back {} block, {} logs'.format(block.block_number, len(decoded_logs)))
+            logger.warning('Rolling back {} block, {} logs'.format(block.block_number, len(decoded_logs)))
             if len(decoded_logs):
                 # We loop decoded logs on inverse order because there might be dependencies inside the same block
                 # And must be processed from last applied to first applied
@@ -195,9 +205,7 @@ class EventListener(object):
         blocks.delete()
 
         # set daemon block_number to current one
-        daemon = Daemon.get_solo()
-        daemon.block_number = block_number
-        daemon.save()
+        self.update_block_number(daemon, block_number)
 
     def backup(self, block_hash, block_number, timestamp, decoded_event,
                event_receiver_string):
@@ -214,35 +222,40 @@ class EventListener(object):
         block.decoded_logs = dumps(saved_logs, cls=JsonBytesEncoder)
         block.save()
 
-    def clean_old_backups(self):
+    def clean_old_backups(self, daemon_block_number):
         max_blocks_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-        current_block = Daemon.get_solo().block_number
-
-        Block.objects.filter(block_number__lt=current_block-max_blocks_backup).delete()
+        return Block.objects.filter(block_number__lt=daemon_block_number-max_blocks_backup).delete()
 
     def execute(self):
+        """
+        :raises: Web3ConnectionException
+        """
         # Check daemon status
         daemon = Daemon.get_solo()
         if daemon.status == 'EXECUTING':
+            current_block_number = self.get_current_block_number()
             # Check reorg
-            had_reorg, reorg_block_number = check_reorg(provider=self.provider)
+            had_reorg, reorg_block_number = check_reorg(daemon.block_number,
+                                                        current_block_number,
+                                                        provider=self.provider)
 
             if had_reorg:
-                self.rollback(reorg_block_number)
+                # Daemon block_number could be modified
+                self.rollback(daemon, reorg_block_number)
 
-            # update block number
-            # get blocks and decode logs
-            last_mined_blocks = self.get_last_mined_blocks()
-            if len(last_mined_blocks):
+            # Get block numbers of last mined blocks not processed yet
+            last_mined_blocks = self.get_last_mined_blocks(daemon_block_number=daemon.block_number,
+                                                           current_block_number=current_block_number)
+            if last_mined_blocks:
                 logger.info('{} blocks mined from {} to {}'.format(len(last_mined_blocks),
                                                                    last_mined_blocks[0],
                                                                    last_mined_blocks[-1]))
             else:
-                logger.info('no blocks mined')
+                logger.info('No blocks mined')
             for block in last_mined_blocks:
                 # first get un-decoded logs and the block info
                 logs, block_info = self.get_logs(block)
-                logger.info('got {} logs in block {}'.format(len(logs), block_info['number']))
+                logger.info('Got {} logs in block {}'.format(len(logs), block_info['number']))
 
                 ###########################
                 # Decode logs #
@@ -253,6 +266,7 @@ class EventListener(object):
                         self.decoder.add_abi(contract['EVENT_ABI'])
 
                         # Get watched contract addresses
+                        # TODO Use set to search by index instead of in list (O(1) vs O(n))
                         watched_addresses = self.get_watched_contract_addresses(contract)
 
                         # Filter logs by relevant addresses
@@ -284,7 +298,6 @@ class EventListener(object):
                                         )
 
                 # TODO refactor to be faster
-                daemon = Daemon.get_solo()
                 daemon.block_number = block
                 daemon.save()
 
@@ -299,8 +312,7 @@ class EventListener(object):
 
             if len(last_mined_blocks):
                 # Update block number after execution
-                logger.info('update daemon block_number={}'.format(last_mined_blocks[-1]))
-                self.update_block_number(last_mined_blocks[-1])
+                self.update_block_number(daemon, last_mined_blocks[-1])
 
                 # Remove older backups
-                self.clean_old_backups()
+                self.clean_old_backups(daemon.block_number)
