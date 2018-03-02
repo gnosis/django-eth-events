@@ -10,7 +10,7 @@ requirements = [
     "celery==4.1.0",
     "Django==2.0.2",
     "django-solo==1.1.3",
-    "eth-abi==0.5.0",
+    "eth-abi==1.0.0",
     "eth-utils==0.7.4",
     "ethereum==1.6.1",
     "kombu==4.1.0",
