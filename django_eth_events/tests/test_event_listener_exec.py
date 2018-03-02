@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 from json import loads
 
 from django.test import TestCase
