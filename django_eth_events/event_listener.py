@@ -1,4 +1,3 @@
-import socket
 from json import dumps, loads
 
 from celery.utils.log import get_task_logger
@@ -6,8 +5,8 @@ from django.conf import settings
 from django.utils.module_loading import import_string
 
 from .decoder import Decoder
-from .exceptions import (UnknownBlock, UnknownTransaction,
-                         Web3ConnectionException)
+from .exceptions import UnknownBlock
+
 from .models import Block, Daemon
 from .reorgs import check_reorg
 from .utils import (JsonBytesEncoder, normalize_address_without_0x,
@@ -146,8 +145,7 @@ class EventListener(object):
             logger.error(e)
             raise LookupError("Could not retrieve watched addresses for contract {}".format(contract))
 
-        normalized_addresses = [normalize_address_without_0x(address)
-                                for address in addresses]
+        normalized_addresses = {normalize_address_without_0x(address) for address in addresses}
         return normalized_addresses
 
     def save_event(self, contract, decoded_log, block_info):
@@ -250,7 +248,6 @@ class EventListener(object):
                         self.decoder.add_abi(contract['EVENT_ABI'])
 
                         # Get watched contract addresses
-                        # TODO Use set to search by index instead of in list (O(1) vs O(n))
                         watched_addresses = self.get_watched_contract_addresses(contract)
 
                         # Filter logs by relevant addresses
