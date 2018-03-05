@@ -1,3 +1,4 @@
+import concurrent.futures
 import socket
 
 from django.conf import settings
@@ -107,3 +108,33 @@ class Web3Service(object):
                     raise Web3ConnectionException('Web3 provider is not connected')
                 else:
                     raise UnknownBlock
+
+        def get_current_block(self, full_transactions=False):
+            """
+            :param full_transactions:
+            :raises Web3ConnectionException
+            :raises UnknownBlock
+            :return:
+            """
+            return self.get_block(self.get_current_block_number(), full_transactions)
+
+        def get_blocks(self, block_identifiers, full_transactions=False):
+            """
+            :param block_identifiers:
+            :param full_transactions:
+            :raises Web3ConnectionException
+            :raises UnknownBlock
+            :return:
+            """
+            max_workers = getattr(settings, 'ETHEREUM_MAX_WORKERS', 10)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Start the load operations and mark each future with its URL
+                future_to_block_id = {executor.submit(self.get_block, block_id, full_transactions): block_id
+                                      for block_id in block_identifiers}
+                blocks = {}
+                for future in concurrent.futures.as_completed(future_to_block_id):
+                    block_id = future_to_block_id[future]
+                    block = future.result()
+                    blocks[block_id] = block
+
+                return blocks

@@ -56,7 +56,8 @@ class TestDaemon(TestCase):
 
     def test_get_logs(self):
         # no logs before transactions
-        logs, block_info = self.el.get_logs(0)
+        block_info = self.el.web3_service.get_block(0)
+        logs = self.el.get_logs(block_info)
         self.assertListEqual([], logs)
 
         # create Wallet Factory contract
@@ -69,7 +70,8 @@ class TestDaemon(TestCase):
         self.assertIsNotNone(receipt.get('contractAddress'))
         factory_address = receipt['contractAddress']
 
-        logs, block_info = self.el.get_logs(0)
+        block_info = self.el.web3_service.get_block(0)
+        logs = self.el.get_logs(block_info)
         self.assertListEqual([], logs)
 
         # send deploy() function, will trigger two events
@@ -89,7 +91,9 @@ class TestDaemon(TestCase):
         self.assertEqual(list(self.el.get_last_mined_block_numbers(daemon.block_number,
                                                                    self.el.get_current_block_number())),
                          [])
-        logs, block_info = self.el.get_logs(self.el.web3.eth.blockNumber)
+
+        block_info = self.el.web3_service.get_current_block()
+        logs = self.el.get_logs(block_info)
         self.assertEqual(2, len(logs))
         decoded = self.el.decoder.decode_logs(logs)
         self.assertEqual(2, len(decoded))

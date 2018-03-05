@@ -6,7 +6,6 @@ from django.utils.module_loading import import_string
 
 from .decoder import Decoder
 from .exceptions import UnknownBlock
-
 from .models import Block, Daemon
 from .reorgs import check_reorg
 from .utils import (JsonBytesEncoder, normalize_address_without_0x,
@@ -110,7 +109,7 @@ class EventListener(object):
         daemon.block_number = block_number
         daemon.save()
 
-    def get_logs(self, block_number):
+    def get_logs(self, block):
         """
         By a given block number returns a pair logs, block_info
         logs it's an array of decoded ethereum log dictionaries
@@ -118,8 +117,6 @@ class EventListener(object):
         :param block_number:
         :return:
         """
-
-        block = self.web3_service.get_block(block_number)
 
         logs = []
 
@@ -129,7 +126,7 @@ class EventListener(object):
 
                 if receipt.get('logs'):
                     logs.extend(receipt['logs'])
-            return logs, block
+            return logs
         else:
             raise UnknownBlock
 
@@ -233,9 +230,12 @@ class EventListener(object):
             else:
                 logger.info('No blocks mined')
 
+            prefetched_blocks = self.web3_service.get_blocks(last_mined_block_numbers)
+
             for block_number in last_mined_block_numbers:
                 # first get un-decoded logs and the block info
-                logs, block_info = self.get_logs(block_number)
+                block_info = prefetched_blocks[block_number]
+                logs = self.get_logs(block_info)
                 logger.info('Got {} logs in block {}'.format(len(logs), block_info['number']))
 
                 ###########################
