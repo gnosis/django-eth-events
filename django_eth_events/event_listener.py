@@ -89,10 +89,10 @@ class EventListener(object):
     def next_block(cls):
         return Daemon.get_solo().block_number
 
-    def get_last_mined_blocks(self, daemon_block_number, current_block_number):
+    def get_last_mined_block_numbers(self, daemon_block_number, current_block_number):
         """
         Returns a range with the block numbers of blocks mined since last event_listener execution
-        :return: [int]
+        :return: iter(int)
         """
         logger.info('Blocks mined, daemon: {} current: {}'.format(daemon_block_number, current_block_number))
         if daemon_block_number < current_block_number:
@@ -224,18 +224,18 @@ class EventListener(object):
                 self.rollback(daemon, reorg_block_number)
 
             # Get block numbers of last mined blocks not processed yet
-            last_mined_blocks = self.get_last_mined_blocks(daemon_block_number=daemon.block_number,
-                                                           current_block_number=current_block_number)
-            if last_mined_blocks:
-                logger.info('{} blocks mined from {} to {}'.format(len(last_mined_blocks),
-                                                                   last_mined_blocks[0],
-                                                                   last_mined_blocks[-1]))
+            last_mined_block_numbers = self.get_last_mined_block_numbers(daemon_block_number=daemon.block_number,
+                                                                         current_block_number=current_block_number)
+            if last_mined_block_numbers:
+                logger.info('{} blocks mined from {} to {}'.format(len(last_mined_block_numbers),
+                                                                   last_mined_block_numbers[0],
+                                                                   last_mined_block_numbers[-1]))
             else:
                 logger.info('No blocks mined')
 
-            for block in last_mined_blocks:
+            for block_number in last_mined_block_numbers:
                 # first get un-decoded logs and the block info
-                logs, block_info = self.get_logs(block)
+                logs, block_info = self.get_logs(block_number)
                 logger.info('Got {} logs in block {}'.format(len(logs), block_info['number']))
 
                 ###########################
@@ -268,7 +268,7 @@ class EventListener(object):
                                 # Only valid data is saved in backup
                                 if instance is not None:
                                     max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-                                    if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
+                                    if (block_number - last_mined_block_numbers[-1]) < max_blocks_to_backup:
                                         self.backup(
                                             remove_0x_head(block_info['hash']),
                                             block_info['number'],
@@ -277,22 +277,21 @@ class EventListener(object):
                                             contract['EVENT_DATA_RECEIVER']
                                         )
 
-                # TODO refactor to be faster
-                daemon.block_number = block
+                daemon.block_number = block_number
                 daemon.save()
 
                 max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-                if (block - last_mined_blocks[-1]) < max_blocks_to_backup:
+                if (block_number - last_mined_block_numbers[-1]) < max_blocks_to_backup:
                     # backup block if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
                     Block.objects.get_or_create(
-                        block_number=block,
+                        block_number=block_number,
                         block_hash=remove_0x_head(block_info['hash']),
                         defaults={'timestamp': block_info['timestamp']}
                     )
 
-            if len(last_mined_blocks):
+            if len(last_mined_block_numbers):
                 # Update block number after execution
-                self.update_block_number(daemon, last_mined_blocks[-1])
+                self.update_block_number(daemon, last_mined_block_numbers[-1])
 
                 # Remove older backups
                 self.clean_old_backups(daemon.block_number)

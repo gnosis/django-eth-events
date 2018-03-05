@@ -25,20 +25,20 @@ class TestDaemon(TestCase):
 
     def test_next_block(self):
         daemon = Daemon.get_solo()
-        self.assertListEqual(list(self.el.get_last_mined_blocks(daemon.block_number,
-                                                                self.el.get_current_block_number())),
+        self.assertListEqual(list(self.el.get_last_mined_block_numbers(daemon.block_number,
+                                                                       self.el.get_current_block_number())),
                              [])
         factory = self.el.web3.eth.contract(abi, bytecode=bin_hex)
         tx_hash = factory.deploy()
         self.el.web3.eth.getTransactionReceipt(tx_hash)
         tx_hash2 = factory.deploy()
         self.el.web3.eth.getTransactionReceipt(tx_hash2)
-        self.assertEqual(list(self.el.get_last_mined_blocks(daemon.block_number,
-                                                            self.el.get_current_block_number())),
+        self.assertEqual(list(self.el.get_last_mined_block_numbers(daemon.block_number,
+                                                                   self.el.get_current_block_number())),
                          [1, 2])
         self.el.update_block_number(daemon, 2)
-        self.assertEqual(list(self.el.get_last_mined_blocks(daemon.block_number,
-                                                            self.el.get_current_block_number())),
+        self.assertEqual(list(self.el.get_last_mined_block_numbers(daemon.block_number,
+                                                                   self.el.get_current_block_number())),
                          [])
 
     def test_load_abis(self):
@@ -82,12 +82,12 @@ class TestDaemon(TestCase):
         receipt = self.el.web3.eth.getTransactionReceipt(tx_hash)
         self.assertIsNotNone(receipt)
         daemon = Daemon.get_solo()
-        self.assertEqual(list(self.el.get_last_mined_blocks(daemon.block_number,
-                                                            self.el.get_current_block_number())),
+        self.assertEqual(list(self.el.get_last_mined_block_numbers(daemon.block_number,
+                                                                   self.el.get_current_block_number())),
                          [1, 2])
         self.el.update_block_number(daemon, 2)
-        self.assertEqual(list(self.el.get_last_mined_blocks(daemon.block_number,
-                                                            self.el.get_current_block_number())),
+        self.assertEqual(list(self.el.get_last_mined_block_numbers(daemon.block_number,
+                                                                   self.el.get_current_block_number())),
                          [])
         logs, block_info = self.el.get_logs(self.el.web3.eth.blockNumber)
         self.assertEqual(2, len(logs))
