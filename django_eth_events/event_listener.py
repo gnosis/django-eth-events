@@ -66,8 +66,8 @@ class EventListener(object):
         for contract in contract_map:
             contract_parsed = contract.copy()
             if 'ADDRESSES_GETTER' in contract:
-                contract_parsed['ADDRESSES_GETTER_CLASS'] = self.import_class_from_string(contract['ADDRESSES_GETTER'])
-            contract_parsed['EVENT_DATA_RECEIVER_CLASS'] = self.import_class_from_string(contract['EVENT_DATA_RECEIVER'])
+                contract_parsed['ADDRESSES_GETTER_CLASS'] = self.import_class_from_string(contract['ADDRESSES_GETTER'])()
+            contract_parsed['EVENT_DATA_RECEIVER_CLASS'] = self.import_class_from_string(contract['EVENT_DATA_RECEIVER'])()
             contracts_parsed.append(contract_parsed)
         return contracts_parsed
 
@@ -139,8 +139,7 @@ class EventListener(object):
             if contract.get('ADDRESSES'):
                 addresses = contract['ADDRESSES']
             elif contract.get('ADDRESSES_GETTER_CLASS'):
-                addresses_getter = contract['ADDRESSES_GETTER_CLASS']
-                addresses = addresses_getter().get_addresses()
+                addresses = contract['ADDRESSES_GETTER_CLASS'].get_addresses()
         except Exception as e:
             logger.error(e)
             raise LookupError("Could not retrieve watched addresses for contract {}".format(contract))
@@ -149,8 +148,8 @@ class EventListener(object):
         return normalized_addresses
 
     def save_event(self, contract, decoded_log, block_info):
-        EventReceiver = contract['EVENT_DATA_RECEIVER_CLASS']
-        instance = EventReceiver().save(decoded_event=decoded_log, block_info=block_info)
+        event_receiver = contract['EVENT_DATA_RECEIVER_CLASS']
+        instance = event_receiver.save(decoded_event=decoded_log, block_info=block_info)
         return instance
 
     def revert_events(self, event_receiver_string, decoded_event, block_info):
