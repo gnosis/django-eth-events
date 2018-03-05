@@ -10,9 +10,8 @@ from requests.exceptions import RequestException
 from urllib3.exceptions import HTTPError, LocationValueError, PoolError
 
 from .event_listener import EventListener
-from .exceptions import (NetworkReorgException, UnknownBlock,
-                         UnknownBlockReorgException, UnknownTransaction,
-                         Web3ConnectionException)
+from .exceptions import (UnknownBlock, UnknownBlockReorgException,
+                         UnknownTransaction, Web3ConnectionException)
 from .models import Daemon
 
 logger = get_task_logger(__name__)
@@ -48,8 +47,6 @@ def event_listener(provider=None):
             logger.error('Unknown Block hash, might be a reorg')
         except UnknownBlockReorgException:
             logger.error('Unknown Block hash, might be a reorg')
-        except NetworkReorgException as nrex:
-            logger.error('An error occurred while calling ethereum node on reorgs checker. %s' % nrex.message)
         except Web3ConnectionException:
             logger.error('Web3 cannot connect to providers')
         except Exception as err:

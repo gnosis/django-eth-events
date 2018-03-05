@@ -1,5 +1,10 @@
+import socket
+
 from django.conf import settings
 from web3 import HTTPProvider, IPCProvider, Web3
+
+from .exceptions import (UnknownBlock, UnknownTransaction,
+                         Web3ConnectionException)
 
 
 class Web3Service(object):
@@ -8,6 +13,20 @@ class Web3Service(object):
     the argument provider is different than the current used provider.
     """
     instance = None
+
+    def __new__(cls, provider=None):
+        if not Web3Service.instance:
+            Web3Service.instance = Web3Service.__Web3Service(provider)
+        elif provider and not isinstance(provider,
+                                         Web3Service.instance.web3.providers[0].__class__):
+            Web3Service.instance = Web3Service.__Web3Service(provider)
+        elif not provider and not isinstance(Web3Service.instance.web3.providers[0],
+                                             Web3Service.instance.default_provider_class):
+            Web3Service.instance = Web3Service.__Web3Service(provider)
+        return Web3Service.instance
+
+    def __getattr__(self, item):
+        return getattr(self.instance, item)
 
     class __Web3Service:
         web3 = None
@@ -30,16 +49,61 @@ class Web3Service(object):
 
             self.web3 = Web3(provider)
 
-    def __new__(cls, provider=None):
-        if not Web3Service.instance:
-            Web3Service.instance = Web3Service.__Web3Service(provider)
-        elif provider and not isinstance(provider,
-                                         Web3Service.instance.web3.providers[0].__class__):
-            Web3Service.instance = Web3Service.__Web3Service(provider)
-        elif not provider and not isinstance(Web3Service.instance.web3.providers[0],
-                                             Web3Service.instance.default_provider_class):
-            Web3Service.instance = Web3Service.__Web3Service(provider)
-        return Web3Service.instance
+        @property
+        def main_provider(self):
+            return self.web3.providers[0]
 
-    def __getattr__(self, item):
-        return getattr(self.instance, item)
+        def is_connected(self):
+            try:
+                return self.web3.isConnected()
+            except socket.timeout:
+                return False
+
+        def get_current_block_number(self):
+            """
+            :raises Web3ConnectionException
+            :return: <int>
+            """
+            try:
+                return self.web3.eth.blockNumber
+            except Exception as e:
+                if not self.is_connected():
+                    raise Web3ConnectionException('Web3 provider is not connected')
+                else:
+                    raise e
+
+        def get_transaction_receipt(self, transaction_hash):
+            """
+            :param transaction_hash:
+            :raises Web3ConnectionException
+            :raises UnknownTransaction
+            :return:
+            """
+            try:
+                receipt = self.web3.eth.getTransactionReceipt(transaction_hash)
+
+                # receipt sometimes is none, might be because a reorg, we exit the loop with a controlled exception
+                if receipt is None:
+                    raise UnknownTransaction
+                return receipt
+            except:
+                if not self.is_connected():
+                    raise Web3ConnectionException('Web3 provider is not connected')
+                else:
+                    raise UnknownTransaction
+
+        def get_block(self, block_identifier, full_transactions=False):
+            """
+            :param block_identifier:
+            :param full_transactions:
+            :raises Web3ConnectionException
+            :raises UnknownBlock
+            :return:
+            """
+            try:
+                return self.web3.eth.getBlock(block_identifier, full_transactions)
+            except:
+                if not self.is_connected():
+                    raise Web3ConnectionException('Web3 provider is not connected')
+                else:
+                    raise UnknownBlock

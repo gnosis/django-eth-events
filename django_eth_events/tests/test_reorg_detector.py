@@ -10,8 +10,7 @@ from web3 import HTTPProvider
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..chainevents import AbstractEventReceiver
-from ..exceptions import (NetworkReorgException, NoBackupException,
-                          Web3ConnectionException)
+from ..exceptions import NoBackupException, Web3ConnectionException
 from ..factories import DaemonFactory
 from ..models import Block, Daemon
 from ..reorgs import check_reorg
@@ -49,7 +48,7 @@ class TestReorgDetector(TestCase):
         sleep(1)
         print('served')
         self.provider = HTTPProvider('http://localhost:8545')
-        self.web3 = Web3Service(self.provider).web3
+        self.web3_service = Web3Service(self.provider)
         # Mock web3
         self.daemon = DaemonFactory()
 
@@ -60,17 +59,17 @@ class TestReorgDetector(TestCase):
         sleep(1)
 
     def test_mocked_block_number(self):
-        self.assertEqual(self.web3.eth.blockNumber, 0)
+        self.assertEqual(self.web3_service.get_current_block_number(), 0)
         cache.set('block_number', '0x9')
-        self.assertEqual(self.web3.eth.blockNumber, 9)
+        self.assertEqual(self.web3_service.get_current_block_number(), 9)
 
     def test_mocked_block_hash(self):
         block_hash_0 = '{:040d}'.format(0)
         cache.set('0x0', block_hash_0)
-        self.assertEqual(self.web3.eth.getBlock(0)['hash'], block_hash_0)
+        self.assertEqual(self.web3_service.get_block(0)['hash'], block_hash_0)
         block_hash_1 = '{:040d}'.format(1)
         cache.set('0x1', block_hash_1)
-        self.assertEqual(self.web3.eth.getBlock(1)['hash'], block_hash_1)
+        self.assertEqual(self.web3_service.get_block(1)['hash'], block_hash_1)
         self.assertNotEqual(block_hash_0, block_hash_1)
 
     def test_reorg_ok(self):

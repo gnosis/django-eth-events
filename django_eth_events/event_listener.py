@@ -1,5 +1,5 @@
-from json import dumps, loads
 import socket
+from json import dumps, loads
 
 from celery.utils.log import get_task_logger
 from django.conf import settings
@@ -47,7 +47,8 @@ class EventListener(object):
 
     def __init__(self, contract_map=None, provider=None):
         self.decoder = Decoder()  # Decodes Ethereum logs
-        self.web3 = Web3Service(provider=provider).web3  # Gets transaction and block info from ethereum
+        self.web3_service = Web3Service(provider=provider)
+        self.web3 = self.web3_service.web3  # Gets transaction and block info from ethereum
 
         if not contract_map:
             # Taken from settings, it's the contracts we listen to
@@ -80,19 +81,10 @@ class EventListener(object):
 
     @property
     def provider(self):
-        return self.web3.providers[0]
+        return self.web3_service.main_provider
 
     def get_current_block_number(self):
-        try:
-            return self.web3.eth.blockNumber
-        except Exception as e:
-            try:
-                if not self.web3.isConnected():
-                    raise Web3ConnectionException('Web3 provider is not connected')
-                else:
-                    raise e
-            except socket.timeout:
-                raise Web3ConnectionException('Web3 provider is not connected. Socket timeout')
+        return self.web3_service.get_current_block_number()
 
     @staticmethod
     def next_block(cls):
@@ -127,35 +119,15 @@ class EventListener(object):
         :param block_number:
         :return:
         """
-        try:
-            block = self.web3.eth.getBlock(block_number)
-        except:
-            try:
-                if not self.web3.isConnected():
-                    raise Web3ConnectionException('Web3 provider is not connected')
-                else:
-                    raise UnknownBlock
-            except socket.timeout:
-                raise Web3ConnectionException('Web3 provider is not connected. Socket timeout')
+
+        block = self.web3_service.get_block(block_number)
 
         logs = []
 
         if block and block.get('hash'):
             for tx in block['transactions']:
-                # receipt sometimes is none, might be because a reorg, we exit the loop with a controlled exception
-                try:
-                    receipt = self.web3.eth.getTransactionReceipt(tx)
-                except:
-                    try:
-                        if not self.web3.isConnected():
-                            raise Web3ConnectionException('Web3 provider is not connected')
-                        else:
-                            raise UnknownTransaction
-                    except socket.timeout:
-                        raise Web3ConnectionException('Web3 provider is not connected. Socket timeout')
+                receipt = self.web3_service.get_transaction_receipt(tx)
 
-                if receipt is None:
-                    raise UnknownTransaction
                 if receipt.get('logs'):
                     logs.extend(receipt['logs'])
             return logs, block
@@ -244,7 +216,7 @@ class EventListener(object):
         # Check daemon status
         daemon = Daemon.get_solo()
         if daemon.status == 'EXECUTING':
-            current_block_number = self.get_current_block_number()
+            current_block_number = self.web3_service.get_current_block_number()
             # Check reorg
             had_reorg, reorg_block_number = check_reorg(daemon.block_number,
                                                         current_block_number,
@@ -263,6 +235,7 @@ class EventListener(object):
                                                                    last_mined_blocks[-1]))
             else:
                 logger.info('No blocks mined')
+
             for block in last_mined_blocks:
                 # first get un-decoded logs and the block info
                 logs, block_info = self.get_logs(block)
