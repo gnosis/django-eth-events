@@ -38,9 +38,9 @@ def event_listener(provider=None):
     if locked:
         logger.debug('LOCK already being imported by another worker')
     else:
-        bot = EventListener(provider=provider)
         try:
-            bot.execute()
+            el = EventListener(provider=provider)
+            el.execute()
         except UnknownTransaction:
             logger.error('Unknown Transaction hash, might be a reorg')
         except UnknownBlock:
