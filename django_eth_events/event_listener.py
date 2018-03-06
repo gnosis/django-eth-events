@@ -116,7 +116,7 @@ class EventListener(object):
         By a given block number returns a pair logs, block_info
         logs it's an array of decoded ethereum log dictionaries
         and block info it's a dic
-        :param block_number:
+        :param block:
         :return:
         """
 
@@ -227,8 +227,8 @@ class EventListener(object):
         return Block.objects.filter(block_number__lt=daemon_block_number-self.max_blocks_to_backup).delete()
 
     def execute(self):
+        daemon = Daemon.get_solo()
         try:
-            daemon = Daemon.get_solo()
             self.check_blocks(daemon)
         finally:
             # Update block number after execution
@@ -253,64 +253,62 @@ class EventListener(object):
             # Get block numbers of next mined blocks not processed yet
             next_mined_block_numbers = self.get_next_mined_block_numbers(daemon_block_number=daemon.block_number,
                                                                          current_block_number=current_block_number)
-            if next_mined_block_numbers:
+
+            if not next_mined_block_numbers:
+                logger.info('No blocks mined')
+            else:
                 logger.info('{} blocks mined from {} to {}'.format(len(next_mined_block_numbers),
                                                                    next_mined_block_numbers[0],
                                                                    next_mined_block_numbers[-1]))
-            else:
-                logger.info('No blocks mined')
 
-            prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
+                prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
+                last_block_number = next_mined_block_numbers[-1]
+                self.backup_blocks(prefetched_blocks, last_block_number)
 
-            last_block_number = next_mined_block_numbers[-1]
+                for block_number in next_mined_block_numbers:
+                    # first get un-decoded logs and the block info
+                    block_info = prefetched_blocks[block_number]
+                    logs = self.get_logs(block_info)
+                    logger.info('Got {} logs in block {}'.format(len(logs), block_info['number']))
 
-            self.backup_blocks(prefetched_blocks, last_block_number)
+                    ###########################
+                    # Decode logs #
+                    ###########################
+                    if logs:
+                        for contract in self.contract_map:
+                            # Add ABI
+                            self.decoder.add_abi(contract['EVENT_ABI'])
 
-            for block_number in next_mined_block_numbers:
-                # first get un-decoded logs and the block info
-                block_info = prefetched_blocks[block_number]
-                logs = self.get_logs(block_info)
-                logger.info('Got {} logs in block {}'.format(len(logs), block_info['number']))
+                            # Get watched contract addresses
+                            watched_addresses = self.get_watched_contract_addresses(contract)
 
-                ###########################
-                # Decode logs #
-                ###########################
-                if logs:
-                    for contract in self.contract_map:
-                        # Add ABI
-                        self.decoder.add_abi(contract['EVENT_ABI'])
+                            # Filter logs by relevant addresses
+                            target_logs = [log for log in logs
+                                           if normalize_address_without_0x(log['address']) in watched_addresses]
 
-                        # Get watched contract addresses
-                        watched_addresses = self.get_watched_contract_addresses(contract)
+                            logger.info('Found {} logs'.format(len(target_logs)))
 
-                        # Filter logs by relevant addresses
-                        target_logs = [log for log in logs
-                                       if normalize_address_without_0x(log['address']) in watched_addresses]
+                            # Decode logs
+                            decoded_logs = self.decoder.decode_logs(target_logs)
 
-                        logger.info('Found {} logs'.format(len(target_logs)))
+                            logger.info('Decoded {} logs'.format(len(decoded_logs)))
 
-                        # Decode logs
-                        decoded_logs = self.decoder.decode_logs(target_logs)
+                            for log in decoded_logs:
+                                # Save events
+                                instance = self.save_event(contract, log, block_info)
 
-                        logger.info('Decoded {} logs'.format(len(decoded_logs)))
+                                # Only valid data is saved in backup
+                                if instance is not None:
+                                    if (block_number - last_block_number) < self.max_blocks_to_backup:
+                                        self.backup(
+                                            remove_0x_head(block_info['hash']),
+                                            block_info['number'],
+                                            block_info['timestamp'],
+                                            log,
+                                            contract['EVENT_DATA_RECEIVER']
+                                        )
 
-                        for log in decoded_logs:
-                            # Save events
-                            instance = self.save_event(contract, log, block_info)
+                    daemon.block_number = block_number
 
-                            # Only valid data is saved in backup
-                            if instance is not None:
-                                if (block_number - last_block_number) < self.max_blocks_to_backup:
-                                    self.backup(
-                                        remove_0x_head(block_info['hash']),
-                                        block_info['number'],
-                                        block_info['timestamp'],
-                                        log,
-                                        contract['EVENT_DATA_RECEIVER']
-                                    )
-
-                daemon.block_number = block_number
-
-            if next_mined_block_numbers:
                 # Remove older backups
                 self.clean_old_backups(daemon.block_number)
