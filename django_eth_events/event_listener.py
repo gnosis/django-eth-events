@@ -239,7 +239,7 @@ class EventListener(object):
         :raises: Web3ConnectionException
         """
         # Check daemon status
-        if daemon.status == 'EXECUTING':
+        if daemon.is_executing():
             current_block_number = self.web3_service.get_current_block_number()
             # Check reorg
             had_reorg, reorg_block_number = check_reorg(daemon.block_number,

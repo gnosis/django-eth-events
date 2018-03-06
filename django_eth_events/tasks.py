@@ -63,7 +63,7 @@ def event_listener(provider=None):
             else:
                 logger.error("halting system due to error {}".format(str(err)))
                 daemon = Daemon.get_solo()
-                daemon.status = 'HALTED'
+                daemon.set_halted()
                 daemon.save()
                 # get last error block number database
                 last_error_block_number = daemon.last_error_block_number
