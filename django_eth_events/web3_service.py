@@ -32,6 +32,7 @@ class Web3Service(object):
     class __Web3Service:
         web3 = None
         default_provider_class = HTTPProvider
+        max_workers = int(getattr(settings, 'ETHEREUM_MAX_WORKERS', 10))
 
         def __init__(self, provider=None):
             if not provider:
@@ -126,8 +127,7 @@ class Web3Service(object):
             :raises UnknownBlock
             :return:
             """
-            max_workers = getattr(settings, 'ETHEREUM_MAX_WORKERS', 10)
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 # Start the load operations and mark each future with its URL
                 future_to_block_id = {executor.submit(self.get_block, block_id, full_transactions): block_id
                                       for block_id in block_identifiers}

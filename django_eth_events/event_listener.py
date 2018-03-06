@@ -43,6 +43,9 @@ class SingletonListener(object):
 @SingletonListener
 class EventListener(object):
 
+    max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
+    max_blocks_to_process = int(getattr(settings, 'ETH_PROCESS_BLOCKS', '10000'))
+
     def __init__(self, contract_map=None, provider=None):
         self.decoder = Decoder()  # Decodes Ethereum logs
         self.web3_service = Web3Service(provider=provider)
@@ -95,9 +98,8 @@ class EventListener(object):
         """
         logger.info('Blocks mined, daemon: {} current: {}'.format(daemon_block_number, current_block_number))
         if daemon_block_number < current_block_number:
-            max_blocks_to_process = int(getattr(settings, 'ETH_PROCESS_BLOCKS', '10000'))
-            if current_block_number - daemon_block_number > max_blocks_to_process:
-                blocks_to_update = range(daemon_block_number + 1, daemon_block_number + max_blocks_to_process)
+            if current_block_number - daemon_block_number > self.max_blocks_to_process:
+                blocks_to_update = range(daemon_block_number + 1, daemon_block_number + self.max_blocks_to_process)
             else:
                 blocks_to_update = range(daemon_block_number + 1, current_block_number + 1)
             return blocks_to_update
@@ -200,15 +202,20 @@ class EventListener(object):
         block.save()
 
     def clean_old_backups(self, daemon_block_number):
-        max_blocks_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-        return Block.objects.filter(block_number__lt=daemon_block_number-max_blocks_backup).delete()
+        return Block.objects.filter(block_number__lt=daemon_block_number-self.max_blocks_to_backup).delete()
 
     def execute(self):
+        try:
+            daemon = Daemon.get_solo()
+            self.check_blocks(daemon)
+        finally:
+            daemon.save()
+
+    def check_blocks(self, daemon):
         """
         :raises: Web3ConnectionException
         """
         # Check daemon status
-        daemon = Daemon.get_solo()
         if daemon.status == 'EXECUTING':
             current_block_number = self.web3_service.get_current_block_number()
             # Check reorg
@@ -250,38 +257,34 @@ class EventListener(object):
                         watched_addresses = self.get_watched_contract_addresses(contract)
 
                         # Filter logs by relevant addresses
-                        target_logs = [log for log in logs if
-                                       normalize_address_without_0x(log['address']) in watched_addresses]
+                        target_logs = [log for log in logs
+                                       if normalize_address_without_0x(log['address']) in watched_addresses]
 
-                        logger.info('{} logs'.format(len(target_logs)))
+                        logger.info('Found {} logs'.format(len(target_logs)))
 
                         # Decode logs
                         decoded_logs = self.decoder.decode_logs(target_logs)
 
-                        logger.info('{} decoded logs'.format(len(decoded_logs)))
+                        logger.info('Decoded {} logs'.format(len(decoded_logs)))
 
-                        if len(decoded_logs):
-                            for log in decoded_logs:
-                                # Save events
-                                instance = self.save_event(contract, log, block_info)
+                        for log in decoded_logs:
+                            # Save events
+                            instance = self.save_event(contract, log, block_info)
 
-                                # Only valid data is saved in backup
-                                if instance is not None:
-                                    max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-                                    if (block_number - last_mined_block_numbers[-1]) < max_blocks_to_backup:
-                                        self.backup(
-                                            remove_0x_head(block_info['hash']),
-                                            block_info['number'],
-                                            block_info['timestamp'],
-                                            log,
-                                            contract['EVENT_DATA_RECEIVER']
-                                        )
+                            # Only valid data is saved in backup
+                            if instance is not None:
+                                if (block_number - last_mined_block_numbers[-1]) < self.max_blocks_to_backup:
+                                    self.backup(
+                                        remove_0x_head(block_info['hash']),
+                                        block_info['number'],
+                                        block_info['timestamp'],
+                                        log,
+                                        contract['EVENT_DATA_RECEIVER']
+                                    )
 
                 daemon.block_number = block_number
-                daemon.save()
 
-                max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-                if (block_number - last_mined_block_numbers[-1]) < max_blocks_to_backup:
+                if (block_number - last_mined_block_numbers[-1]) < self.max_blocks_to_backup:
                     # backup block if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
                     Block.objects.get_or_create(
                         block_number=block_number,
@@ -289,7 +292,7 @@ class EventListener(object):
                         defaults={'timestamp': block_info['timestamp']}
                     )
 
-            if len(last_mined_block_numbers):
+            if last_mined_block_numbers:
                 # Update block number after execution
                 self.update_block_number(daemon, last_mined_block_numbers[-1])
 
