@@ -201,6 +201,28 @@ class EventListener(object):
         block.decoded_logs = dumps(saved_logs, cls=JsonBytesEncoder)
         block.save()
 
+    def backup_blocks(self, prefetched_blocks, last_block_number):
+        """
+        Backup block at batch if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
+        :param prefetched_blocks: Every prefetched block
+        :param last_block_number: Number of last block mined
+        :return:
+        """
+        blocks_to_backup = []
+        block_numbers_to_delete = []
+        for block_number, prefetched_block in prefetched_blocks.items():
+            if (block_number - last_block_number) < self.max_blocks_to_backup:
+                blocks_to_backup.append(
+                    Block(
+                        block_number=block_number,
+                        block_hash=remove_0x_head(prefetched_block['hash']),
+                        timestamp=prefetched_block['timestamp'],
+                    )
+                )
+                block_numbers_to_delete.append(block_number)
+        Block.objects.filter(block_number__in=block_numbers_to_delete).delete()
+        return Block.objects.bulk_create(blocks_to_backup)
+
     def clean_old_backups(self, daemon_block_number):
         return Block.objects.filter(block_number__lt=daemon_block_number-self.max_blocks_to_backup).delete()
 
@@ -209,7 +231,8 @@ class EventListener(object):
             daemon = Daemon.get_solo()
             self.check_blocks(daemon)
         finally:
-            daemon.save()
+            # Update block number after execution
+            self.update_block_number(daemon, daemon.block_number)
 
     def check_blocks(self, daemon):
         """
@@ -239,6 +262,8 @@ class EventListener(object):
 
             prefetched_blocks = self.web3_service.get_blocks(last_mined_block_numbers)
 
+            self.backup_blocks(prefetched_blocks, last_mined_block_numbers[-1])
+
             for block_number in last_mined_block_numbers:
                 # first get un-decoded logs and the block info
                 block_info = prefetched_blocks[block_number]
@@ -248,7 +273,7 @@ class EventListener(object):
                 ###########################
                 # Decode logs #
                 ###########################
-                if len(logs):
+                if logs:
                     for contract in self.contract_map:
                         # Add ABI
                         self.decoder.add_abi(contract['EVENT_ABI'])
@@ -284,17 +309,6 @@ class EventListener(object):
 
                 daemon.block_number = block_number
 
-                if (block_number - last_mined_block_numbers[-1]) < self.max_blocks_to_backup:
-                    # backup block if haven't been backed up (no logs, but we saved the hash for reorg checking anyway)
-                    Block.objects.get_or_create(
-                        block_number=block_number,
-                        block_hash=remove_0x_head(block_info['hash']),
-                        defaults={'timestamp': block_info['timestamp']}
-                    )
-
             if last_mined_block_numbers:
-                # Update block number after execution
-                self.update_block_number(daemon, last_mined_block_numbers[-1])
-
                 # Remove older backups
                 self.clean_old_backups(daemon.block_number)
