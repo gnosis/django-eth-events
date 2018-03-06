@@ -91,7 +91,7 @@ class EventListener(object):
     def next_block(cls):
         return Daemon.get_solo().block_number
 
-    def get_last_mined_block_numbers(self, daemon_block_number, current_block_number):
+    def get_next_mined_block_numbers(self, daemon_block_number, current_block_number):
         """
         Returns a range with the block numbers of blocks mined since last event_listener execution
         :return: iter(int)
@@ -250,21 +250,23 @@ class EventListener(object):
                 # Daemon block_number could be modified
                 self.rollback(daemon, reorg_block_number)
 
-            # Get block numbers of last mined blocks not processed yet
-            last_mined_block_numbers = self.get_last_mined_block_numbers(daemon_block_number=daemon.block_number,
+            # Get block numbers of next mined blocks not processed yet
+            next_mined_block_numbers = self.get_next_mined_block_numbers(daemon_block_number=daemon.block_number,
                                                                          current_block_number=current_block_number)
-            if last_mined_block_numbers:
-                logger.info('{} blocks mined from {} to {}'.format(len(last_mined_block_numbers),
-                                                                   last_mined_block_numbers[0],
-                                                                   last_mined_block_numbers[-1]))
+            if next_mined_block_numbers:
+                logger.info('{} blocks mined from {} to {}'.format(len(next_mined_block_numbers),
+                                                                   next_mined_block_numbers[0],
+                                                                   next_mined_block_numbers[-1]))
             else:
                 logger.info('No blocks mined')
 
-            prefetched_blocks = self.web3_service.get_blocks(last_mined_block_numbers)
+            prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
 
-            self.backup_blocks(prefetched_blocks, last_mined_block_numbers[-1])
+            last_block_number = next_mined_block_numbers[-1]
 
-            for block_number in last_mined_block_numbers:
+            self.backup_blocks(prefetched_blocks, last_block_number)
+
+            for block_number in next_mined_block_numbers:
                 # first get un-decoded logs and the block info
                 block_info = prefetched_blocks[block_number]
                 logs = self.get_logs(block_info)
@@ -298,7 +300,7 @@ class EventListener(object):
 
                             # Only valid data is saved in backup
                             if instance is not None:
-                                if (block_number - last_mined_block_numbers[-1]) < self.max_blocks_to_backup:
+                                if (block_number - last_block_number) < self.max_blocks_to_backup:
                                     self.backup(
                                         remove_0x_head(block_info['hash']),
                                         block_info['number'],
@@ -309,6 +311,6 @@ class EventListener(object):
 
                 daemon.block_number = block_number
 
-            if last_mined_block_numbers:
+            if next_mined_block_numbers:
                 # Remove older backups
                 self.clean_old_backups(daemon.block_number)
