@@ -6,6 +6,7 @@
 ETHEREUM_NODE_HOST = 'https://mainnet.infura.io'
 ETHEREUM_NODE_PORT = 8545
 ETHEREUM_NODE_SSL = 1
+ETHEREUM_MAX_WORKERS = 10
 
 # ------------------------------------------------------------------------------
 # CELERY CONFIGURATION
