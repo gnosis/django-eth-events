@@ -73,10 +73,10 @@ def event_listener(provider=None):
                     current_block_number, last_error_block_number
                 ))
                 if last_error_block_number < current_block_number:
-                    send_email(traceback.format_exc())
                     # save block number into cache
                     daemon.last_error_block_number = current_block_number
                     daemon.save()
+                    send_email(traceback.format_exc())
         finally:
             logger.info('Releasing LOCK')
             with transaction.atomic():

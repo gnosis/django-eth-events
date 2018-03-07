@@ -107,9 +107,12 @@ class EventListener(object):
             return range(0)
 
     def update_block_number(self, daemon, block_number):
-        logger.info('Update daemon block_number={}'.format(block_number))
-        daemon.block_number = block_number
-        daemon.save()
+        if daemon.block_number != block_number:
+            logger.info('Update daemon block_number={}'.format(block_number))
+            daemon.block_number = block_number
+            daemon.save()
+        else:
+            logger.info('No need to update daemon block_number={}'.format(block_number))
 
     def get_logs(self, block):
         """
@@ -228,87 +231,87 @@ class EventListener(object):
 
     def execute(self):
         daemon = Daemon.get_solo()
-        try:
-            self.check_blocks(daemon)
-        finally:
-            # Update block number after execution
-            self.update_block_number(daemon, daemon.block_number)
+        if daemon.is_executing():
+            try:
+                self.check_blocks(daemon)
+            finally:
+                # Update block number after execution
+                self.update_block_number(daemon, daemon.block_number)
 
     def check_blocks(self, daemon):
         """
         :raises: Web3ConnectionException
         """
         # Check daemon status
-        if daemon.is_executing():
-            current_block_number = self.web3_service.get_current_block_number()
-            # Check reorg
-            had_reorg, reorg_block_number = check_reorg(daemon.block_number,
-                                                        current_block_number,
-                                                        provider=self.provider)
+        current_block_number = self.web3_service.get_current_block_number()
+        # Check reorg
+        had_reorg, reorg_block_number = check_reorg(daemon.block_number,
+                                                    current_block_number,
+                                                    provider=self.provider)
 
-            if had_reorg:
-                # Daemon block_number could be modified
-                self.rollback(daemon, reorg_block_number)
+        if had_reorg:
+            # Daemon block_number could be modified
+            self.rollback(daemon, reorg_block_number)
 
-            # Get block numbers of next mined blocks not processed yet
-            next_mined_block_numbers = self.get_next_mined_block_numbers(daemon_block_number=daemon.block_number,
-                                                                         current_block_number=current_block_number)
+        # Get block numbers of next mined blocks not processed yet
+        next_mined_block_numbers = self.get_next_mined_block_numbers(daemon_block_number=daemon.block_number,
+                                                                     current_block_number=current_block_number)
 
-            if not next_mined_block_numbers:
-                logger.info('No blocks mined')
-            else:
-                logger.info('{} blocks mined from {} to {}'.format(len(next_mined_block_numbers),
-                                                                   next_mined_block_numbers[0],
-                                                                   next_mined_block_numbers[-1]))
+        if not next_mined_block_numbers:
+            logger.info('No blocks mined')
+        else:
+            logger.info('{} blocks mined from {} to {}'.format(len(next_mined_block_numbers),
+                                                               next_mined_block_numbers[0],
+                                                               next_mined_block_numbers[-1]))
 
-                prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
-                last_block_number = next_mined_block_numbers[-1]
-                self.backup_blocks(prefetched_blocks, last_block_number)
+            prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
+            last_block_number = next_mined_block_numbers[-1]
+            self.backup_blocks(prefetched_blocks, last_block_number)
 
-                for block_number in next_mined_block_numbers:
-                    # first get un-decoded logs and the block info
-                    block_info = prefetched_blocks[block_number]
-                    logs = self.get_logs(block_info)
-                    logger.info('Got {} logs in block {}'.format(len(logs), block_info['number']))
+            for block_number in next_mined_block_numbers:
+                # first get un-decoded logs and the block info
+                block_info = prefetched_blocks[block_number]
+                logs = self.get_logs(block_info)
+                logger.info('Got {} logs in block {}'.format(len(logs), block_info['number']))
 
-                    ###########################
-                    # Decode logs #
-                    ###########################
-                    if logs:
-                        for contract in self.contract_map:
-                            # Add ABI
-                            self.decoder.add_abi(contract['EVENT_ABI'])
+                ###########################
+                # Decode logs #
+                ###########################
+                if logs:
+                    for contract in self.contract_map:
+                        # Add ABI
+                        self.decoder.add_abi(contract['EVENT_ABI'])
 
-                            # Get watched contract addresses
-                            watched_addresses = self.get_watched_contract_addresses(contract)
+                        # Get watched contract addresses
+                        watched_addresses = self.get_watched_contract_addresses(contract)
 
-                            # Filter logs by relevant addresses
-                            target_logs = [log for log in logs
-                                           if normalize_address_without_0x(log['address']) in watched_addresses]
+                        # Filter logs by relevant addresses
+                        target_logs = [log for log in logs
+                                       if normalize_address_without_0x(log['address']) in watched_addresses]
 
-                            logger.info('Found {} logs'.format(len(target_logs)))
+                        logger.info('Found {} logs'.format(len(target_logs)))
 
-                            # Decode logs
-                            decoded_logs = self.decoder.decode_logs(target_logs)
+                        # Decode logs
+                        decoded_logs = self.decoder.decode_logs(target_logs)
 
-                            logger.info('Decoded {} logs'.format(len(decoded_logs)))
+                        logger.info('Decoded {} logs'.format(len(decoded_logs)))
 
-                            for log in decoded_logs:
-                                # Save events
-                                instance = self.save_event(contract, log, block_info)
+                        for log in decoded_logs:
+                            # Save events
+                            instance = self.save_event(contract, log, block_info)
 
-                                # Only valid data is saved in backup
-                                if instance is not None:
-                                    if (block_number - last_block_number) < self.max_blocks_to_backup:
-                                        self.backup(
-                                            remove_0x_head(block_info['hash']),
-                                            block_info['number'],
-                                            block_info['timestamp'],
-                                            log,
-                                            contract['EVENT_DATA_RECEIVER']
-                                        )
+                            # Only valid data is saved in backup
+                            if instance is not None:
+                                if (block_number - last_block_number) < self.max_blocks_to_backup:
+                                    self.backup(
+                                        remove_0x_head(block_info['hash']),
+                                        block_info['number'],
+                                        block_info['timestamp'],
+                                        log,
+                                        contract['EVENT_DATA_RECEIVER']
+                                    )
 
-                    daemon.block_number = block_number
+                daemon.block_number = block_number
 
-                # Remove older backups
-                self.clean_old_backups(daemon.block_number)
+            # Remove older backups
+            self.clean_old_backups(daemon.block_number)
