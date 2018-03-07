@@ -107,12 +107,9 @@ class EventListener(object):
             return range(0)
 
     def update_block_number(self, daemon, block_number):
-        if daemon.block_number != block_number:
-            logger.info('Update daemon block_number={}'.format(block_number))
-            daemon.block_number = block_number
-            daemon.save()
-        else:
-            logger.info('No need to update daemon block_number={}'.format(block_number))
+        logger.info('Update daemon block_number={}'.format(block_number))
+        daemon.block_number = block_number
+        daemon.save()
 
     def get_logs(self, block):
         """
