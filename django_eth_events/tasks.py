@@ -61,7 +61,7 @@ def event_listener(provider=None):
                   or isinstance(err, RequestException)):
                 logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
             else:
-                logger.error("halting system due to error {}".format(str(err)))
+                logger.error("Halting system due to error {}".format(str(err)))
                 daemon = Daemon.get_solo()
                 daemon.set_halted()
                 daemon.save()
