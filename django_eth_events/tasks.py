@@ -44,7 +44,7 @@ def event_listener(provider=None):
         except UnknownTransaction:
             logger.error('Unknown Transaction hash, might be a reorg')
         except UnknownBlock:
-            logger.error('Unknown Block hash, might be a reorg')
+            logger.error('Cannot get block by number/hash, might be a reorg')
         except UnknownBlockReorgException:
             logger.error('Unknown Block hash, might be a reorg')
         except Web3ConnectionException:

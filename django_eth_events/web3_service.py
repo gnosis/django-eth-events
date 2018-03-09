@@ -103,7 +103,10 @@ class Web3Service(object):
             :return:
             """
             try:
-                return self.web3.eth.getBlock(block_identifier, full_transactions)
+                block = self.web3.eth.getBlock(block_identifier, full_transactions)
+                if not block:
+                    raise UnknownBlock
+                return block
             except:
                 if not self.is_connected():
                     raise Web3ConnectionException('Web3 provider is not connected')

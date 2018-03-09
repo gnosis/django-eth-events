@@ -5,7 +5,6 @@ from django.conf import settings
 from django.utils.module_loading import import_string
 
 from .decoder import Decoder
-from .exceptions import UnknownBlock
 from .models import Block, Daemon
 from .reorgs import check_reorg
 from .utils import (JsonBytesEncoder, normalize_address_without_0x,
@@ -122,15 +121,12 @@ class EventListener(object):
 
         logs = []
 
-        if block and block.get('hash'):
-            for tx in block['transactions']:
-                receipt = self.web3_service.get_transaction_receipt(tx)
+        for tx in block['transactions']:
+            receipt = self.web3_service.get_transaction_receipt(tx)
 
-                if receipt.get('logs'):
-                    logs.extend(receipt['logs'])
-            return logs
-        else:
-            raise UnknownBlock
+            if receipt.get('logs'):
+                logs.extend(receipt['logs'])
+        return logs
 
     def get_watched_contract_addresses(self, contract):
         addresses = None
