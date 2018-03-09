@@ -17,6 +17,7 @@ STATUS_CHOICES = (
 class Daemon(TimeStampedModel, SingletonModel):
     block_number = models.IntegerField(default=0)
     last_error_block_number = models.IntegerField(default=0)
+    last_error_date_time = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=9,
                               choices=STATUS_CHOICES,
                               default=DaemonStatus.EXECUTING)

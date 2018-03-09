@@ -6,6 +6,7 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.core.mail import mail_admins
 from django.db import transaction
+from django.utils import timezone
 from requests.exceptions import RequestException
 from urllib3.exceptions import HTTPError, LocationValueError, PoolError
 
@@ -75,6 +76,7 @@ def event_listener(provider=None):
                 if last_error_block_number < current_block_number:
                     # save block number into cache
                     daemon.last_error_block_number = current_block_number
+                    daemon.last_error_date_time = timezone.now()
                     daemon.save()
                     send_email(traceback.format_exc())
         finally:
