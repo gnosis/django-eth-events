@@ -4,5 +4,14 @@ from solo.admin import SingletonModelAdmin
 
 from . import models
 
-admin.site.register(models.Daemon, SingletonModelAdmin)
-admin.site.register(models.Block)
+
+class DaemonAdmin(SingletonModelAdmin):
+    readonly_fields = ('created', 'modified')
+
+
+class BlockAdmin(admin.ModelAdmin):
+    readonly_fields = ('created', 'modified')
+
+
+admin.site.register(models.Daemon, DaemonAdmin)
+admin.site.register(models.Block, BlockAdmin)
