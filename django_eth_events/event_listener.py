@@ -180,7 +180,7 @@ class EventListener(object):
         blocks.delete()
 
         # set daemon block_number to current one
-        self.update_block_number(daemon, block_number)
+        daemon.block_number = block_number
 
     def backup(self, block_hash, block_number, timestamp, decoded_event,
                event_receiver_string):
@@ -224,12 +224,14 @@ class EventListener(object):
 
     def execute(self):
         daemon = Daemon.get_solo()
+        daemon_start_block_number = daemon.block_number
         if daemon.is_executing():
             try:
                 self.check_blocks(daemon)
             finally:
-                # Update block number after execution
-                self.update_block_number(daemon, daemon.block_number)
+                # Update block number after execution if changed
+                if daemon_start_block_number != daemon.block_number:
+                    self.update_block_number(daemon, daemon.block_number)
 
     def check_blocks(self, daemon):
         """
