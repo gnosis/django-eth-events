@@ -5,7 +5,7 @@ from eth_abi import decode_abi
 from ethereum.utils import sha3
 
 from .singleton import Singleton
-from .utils import normalize_address_without_0x
+from .utils import normalize_address_without_0x, remove_0x_head
 
 # logger = get_task_logger(__name__)
 
@@ -63,7 +63,7 @@ class Decoder(Singleton):
         :param log: ethereum log
         :return: dictionary of decoded parameters, decoding method reference
         """
-        method_id = log['topics'][0][2:]
+        method_id = remove_0x_head(log['topics'][0].hex())
 
         if method_id not in self.methods:
             raise LookupError("Unknown log topic.")
@@ -101,7 +101,7 @@ class Decoder(Singleton):
                 else:
                     decoded_p['value'] = list(decoded_p['value'])
             elif 'address' == param['type']:
-                address = normalize_address_without_0x(decoded_p['value'])
+                address = normalize_address_without_0x(decoded_p['value'].hex())
                 if len(address) == 40:
                     decoded_p['value'] = address
                 elif len(address) == 64:

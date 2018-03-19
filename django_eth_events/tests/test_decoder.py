@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from hexbytes import HexBytes
 from json import loads
 
 from django.test import TestCase
@@ -39,10 +40,10 @@ class TestDecoder(TestCase):
     def test_decode_logs(self):
         logs = [
           {
-            'address' : '0xa6d9c5f7d4de3cef51ad3b7235d79ccc95114de5',
-            'data' : u"0x00000000000000000000000065039084cc6f4773291a6ed7dcf5bc3a2e894ff300000000000000000000000017e054b16ca658789c927c854976450adbda7df0",
-            'topics' : [
-                '0x4fb057ad4a26ed17a57957fa69c306f11987596069b89521c511fc9a894e6161'
+            'address': '0xa6d9c5f7d4de3cef51ad3b7235d79ccc95114de5',
+            'data': u"0x00000000000000000000000065039084cc6f4773291a6ed7dcf5bc3a2e894ff300000000000000000000000017e054b16ca658789c927c854976450adbda7df0",
+            'topics': [
+                HexBytes('0x4fb057ad4a26ed17a57957fa69c306f11987596069b89521c511fc9a894e6161')
             ]
           }
         ]

@@ -123,9 +123,8 @@ class EventListener(object):
 
         for tx in block['transactions']:
             receipt = self.web3_service.get_transaction_receipt(tx)
+            logs.extend(receipt.get('logs', []))
 
-            if receipt.get('logs'):
-                logs.extend(receipt['logs'])
         return logs
 
     def get_watched_contract_addresses(self, contract):

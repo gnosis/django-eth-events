@@ -28,7 +28,7 @@ class TestDaemon(TestCase):
         self.assertSequenceEqual(self.el.get_next_mined_block_numbers(daemon.block_number,
                                                                       self.el.get_current_block_number()),
                                  [])
-        factory = self.el.web3.eth.contract(abi, bytecode=bin_hex)
+        factory = self.el.web3.eth.contract(abi=abi, bytecode=bin_hex)
         tx_hash = factory.deploy()
         self.el.web3.eth.getTransactionReceipt(tx_hash)
         tx_hash2 = factory.deploy()
@@ -61,7 +61,7 @@ class TestDaemon(TestCase):
         self.assertListEqual([], logs)
 
         # create Wallet Factory contract
-        factory = self.el.web3.eth.contract(abi, bytecode=bin_hex)
+        factory = self.el.web3.eth.contract(abi=abi, bytecode=bin_hex)
         self.assertIsNotNone(factory)
         tx_hash = factory.deploy()
         self.assertIsNotNone(tx_hash)
@@ -76,7 +76,7 @@ class TestDaemon(TestCase):
 
         # send deploy() function, will trigger two events
         self.el.decoder.add_abi(abi)
-        factory_instance = self.el.web3.eth.contract(abi, factory_address)
+        factory_instance = self.el.web3.eth.contract(address=factory_address, abi=abi)
         owners = self.el.web3.eth.accounts[0:2]
         required_confirmations = 1
         daily_limit = 0

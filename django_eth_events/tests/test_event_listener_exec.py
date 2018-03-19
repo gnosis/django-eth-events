@@ -57,7 +57,8 @@ class TestDaemonExec(TestCase):
         self.assertEqual(0, Block.objects.all().count())
 
         # Create centralized oracle
-        tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle('QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+        tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
+            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
         self.assertIsNotNone(tx_hash)
         self.listener_under_test.execute()
         self.assertEqual(CentralizedOracle().length(), 1)
@@ -78,7 +79,7 @@ class TestDaemonExec(TestCase):
 
         # Create centralized oracle
         tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
-            'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
         self.assertIsNotNone(tx_hash)
         self.listener_under_test.execute()
         self.assertEqual(CentralizedOracle().length(), 1)
