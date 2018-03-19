@@ -211,7 +211,7 @@ class EventListener(object):
                 blocks_to_backup.append(
                     Block(
                         block_number=block_number,
-                        block_hash=remove_0x_head(prefetched_block['hash']),
+                        block_hash=remove_0x_head(prefetched_block['hash'].hex()),
                         timestamp=prefetched_block['timestamp'],
                     )
                 )
@@ -265,9 +265,9 @@ class EventListener(object):
 
             for block_number in next_mined_block_numbers:
                 # first get un-decoded logs and the block info
-                block_info = prefetched_blocks[block_number]
-                logs = self.get_logs(block_info)
-                logger.info('Got {} logs in block {}'.format(len(logs), block_info['number']))
+                current_block = prefetched_blocks[block_number]
+                logs = self.get_logs(current_block)
+                logger.info('Got {} logs in block {}'.format(len(logs), current_block['number']))
 
                 ###########################
                 # Decode logs #
@@ -293,15 +293,15 @@ class EventListener(object):
 
                         for log in decoded_logs:
                             # Save events
-                            instance = self.save_event(contract, log, block_info)
+                            instance = self.save_event(contract, log, current_block)
 
                             # Only valid data is saved in backup
                             if instance is not None:
                                 if (block_number - last_block_number) < self.max_blocks_to_backup:
                                     self.backup(
-                                        remove_0x_head(block_info['hash']),
-                                        block_info['number'],
-                                        block_info['timestamp'],
+                                        remove_0x_head(current_block['hash'].hex()),
+                                        current_block['number'],
+                                        current_block['timestamp'],
                                         log,
                                         contract['EVENT_DATA_RECEIVER']
                                     )

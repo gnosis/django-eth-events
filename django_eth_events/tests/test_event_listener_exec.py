@@ -96,7 +96,7 @@ class TestDaemonExec(TestCase):
 
         # Force block_hash change (cannot recreate a real reorg with python testrpc)
         # TODO Check if it can be done with eth-tester
-        block_hash = remove_0x_head(self.web3.eth.getBlock(1)['hash'])
+        block_hash = remove_0x_head(self.web3.eth.getBlock(1)['hash'].hex())
         Block.objects.filter(block_number=1).update(block_hash=block_hash)
 
         self.listener_under_test.execute()

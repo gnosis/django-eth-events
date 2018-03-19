@@ -25,7 +25,7 @@ def check_reorg(daemon_block_number, current_block_number=None, provider=None):
             # check if there was reorg
             for block in blocks:
                 try:
-                    node_block_hash = remove_0x_head(web3_service.get_block(block.block_number)['hash'])
+                    node_block_hash = remove_0x_head(web3_service.get_block(block.block_number)['hash'].hex())
                 except:
                     raise UnknownBlockReorgException
                 if block.block_hash == node_block_hash:
@@ -50,11 +50,11 @@ def check_reorg(daemon_block_number, current_block_number=None, provider=None):
     else:
         # check last common block hash haven't changed
         blocks = Block.objects.filter(block_number__lte=current_block_number).order_by('-block_number')
-        if blocks.count():
+        if blocks:
             # check if there was reorg
             for block in blocks:
                 try:
-                    node_block_hash = remove_0x_head(web3_service.get_block(block.block_number)['hash'])
+                    node_block_hash = remove_0x_head(web3_service.get_block(block.block_number)['hash'].hex())
                 except:
                     raise UnknownBlockReorgException
                 if block.block_hash == node_block_hash:
