@@ -3,6 +3,7 @@ import binascii
 
 from eth_abi import decode_abi
 from ethereum.utils import sha3
+from hexbytes import HexBytes
 
 from .singleton import Singleton
 from .utils import normalize_address_without_0x, remove_0x_head
@@ -97,15 +98,11 @@ class Decoder(Singleton):
 
             if '[]' in param['type']:
                 if 'address' in param['type']:
-                    decoded_p['value'] = list([normalize_address_without_0x(account) for account in decoded_p['value']])
+                    decoded_p['value'] = [self.decode_address(account) for account in decoded_p['value']]
                 else:
                     decoded_p['value'] = list(decoded_p['value'])
             elif 'address' == param['type']:
-                address = normalize_address_without_0x(decoded_p['value'].hex())
-                if len(address) == 40:
-                    decoded_p['value'] = address
-                elif len(address) == 64:
-                    decoded_p['value'] = decoded_p['value'][26::]
+                decoded_p['value'] = self.decode_address(decoded_p['value'])
 
             decoded_params.append(decoded_p)
 
@@ -116,6 +113,16 @@ class Decoder(Singleton):
         }
 
         return decoded_event
+
+    @staticmethod
+    def decode_address(address):
+        if isinstance(address, bytes):
+            address = address.hex()
+        # Address length must be 40 (42 with 0x), but usually it's packed on 32 bits (length of 66 with 0x)
+        if len(address) == 66:
+            address = address[26:]
+
+        return normalize_address_without_0x(address)
 
     def decode_logs(self, logs):
         """

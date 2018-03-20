@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-from ..utils import remove_0x_head
 from http.server import HTTPServer
-from hexbytes import HexBytes
 from multiprocessing import Process
 from time import sleep
 
 from django.core.cache import cache
 from django.test import TestCase
 from eth_tester import EthereumTester
+from hexbytes import HexBytes
 from web3 import HTTPProvider
 from web3.providers.eth_tester import EthereumTesterProvider
 
@@ -16,6 +15,7 @@ from ..exceptions import NoBackupException, Web3ConnectionException
 from ..factories import DaemonFactory
 from ..models import Block, Daemon
 from ..reorgs import check_reorg
+from ..utils import remove_0x_head
 from ..web3_service import Web3Service
 from .mocked_testrpc_reorg import MockedTestrpc
 

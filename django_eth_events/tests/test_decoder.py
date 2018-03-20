@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from hexbytes import HexBytes
 from json import loads
 
 from django.test import TestCase
+from hexbytes import HexBytes
 
 from ..decoder import Decoder
 
