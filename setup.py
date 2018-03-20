@@ -8,18 +8,18 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 requirements = [
     "celery==4.1.0",
-    "Django==2.0.2",
+    "Django==2.0.3",
     "django-solo==1.1.3",
     "eth-abi==1.0.0",
-    "eth-utils==0.7.4",
+    "eth-utils==1.0.1",
     "ethereum==1.6.1",
     "kombu==4.1.0",
-    "web3==3.16.5",
+    "web3==4.0.0b11",
 ]
 
 setup(
     name='django-eth-events',
-    version='2.0.6',
+    version='2.0.7',
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
