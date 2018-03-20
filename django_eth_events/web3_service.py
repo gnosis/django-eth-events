@@ -3,6 +3,7 @@ import socket
 
 from django.conf import settings
 from web3 import HTTPProvider, IPCProvider, Web3
+from web3.middleware import geth_poa_middleware
 
 from .exceptions import (UnknownBlock, UnknownTransaction,
                          Web3ConnectionException)
@@ -50,6 +51,11 @@ class Web3Service(object):
                     provider = self.default_provider_class(endpoint_uri)
 
             self.web3 = Web3(provider)
+
+            # If not in the mainnet, inject Geth PoA middleware
+            # http://web3py.readthedocs.io/en/latest/middleware.html#geth-style-proof-of-authority
+            if self.web3.net.chainId != 1:
+                self.web3.middleware_stack.inject(geth_poa_middleware, layer=0)
 
         @property
         def main_provider(self):
