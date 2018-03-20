@@ -98,7 +98,7 @@ class Decoder(Singleton):
 
             if '[]' in param['type']:
                 if 'address' in param['type']:
-                    decoded_p['value'] = [self.decode_address(account) for account in decoded_p['value']]
+                    decoded_p['value'] = [self.decode_address(address) for address in decoded_p['value']]
                 else:
                     decoded_p['value'] = list(decoded_p['value'])
             elif 'address' == param['type']:
