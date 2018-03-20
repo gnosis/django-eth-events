@@ -31,5 +31,10 @@ class MockedTestrpc(BaseHTTPRequestHandler):
             self.wfile.write(dumps({
                 'jsonrpc': '2.0'
             }).encode())
+        elif post_body['method'] == 'net_version':
+            self.wfile.write(dumps({
+                'jsonrpc': '2.0',
+                'result': '5',
+            }).encode())
         else:
             self.wfile.write('{"code":32601}'.encode())
