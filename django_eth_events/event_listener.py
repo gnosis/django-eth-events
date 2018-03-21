@@ -5,6 +5,7 @@ from django.conf import settings
 from django.utils.module_loading import import_string
 
 from .decoder import Decoder
+from .exceptions import InvalidAddressException
 from .models import Block, Daemon
 from .reorgs import check_reorg
 from .utils import (JsonBytesEncoder, normalize_address_without_0x,
@@ -66,6 +67,19 @@ class EventListener(object):
         contracts_parsed = []
         for contract in contract_map:
             contract_parsed = contract.copy()
+            # Parse addresses (normalize and remove 0x). Throws exception if address is invalid
+            if 'ADDRESSES' in contract:
+                contract_parsed['ADDRESSES'] = []
+                for address in contract['ADDRESSES']:
+                    # TODO Wait for web3 to fix it https://github.com/ethereum/web3.py/issues/715
+                    if self.web3.isAddress('0x' + remove_0x_head(address)):
+                        contract_parsed['ADDRESSES'].append(normalize_address_without_0x(address))
+                    else:
+                        raise InvalidAddressException(address)
+
+                    # Remove duplicated
+                    contract_parsed['ADDRESSES'] = list(set(contract_parsed['ADDRESSES']))
+
             if 'ADDRESSES_GETTER' in contract:
                 contract_parsed['ADDRESSES_GETTER_CLASS'] = self.import_class_from_string(contract['ADDRESSES_GETTER'])()
             contract_parsed['EVENT_DATA_RECEIVER_CLASS'] = self.import_class_from_string(contract['EVENT_DATA_RECEIVER'])()

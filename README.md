@@ -63,7 +63,7 @@ Create a new array variable in your settings file and call it ETH_EVENTS as foll
 ```
 ETH_EVENTS = [
     {
-        'ADDRESSES': ['254dffcd3277c0b1660f6d42efbb754edababc2b'],
+        'ADDRESSES': ['0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B'],
         'EVENT_ABI': '... ABI ...',
         'EVENT_DATA_RECEIVER': 'yourmodule.event_receivers.YourReceiverClass',
         'NAME': 'Your Contract Name',

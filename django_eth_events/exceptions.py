@@ -20,3 +20,7 @@ class UnknownBlock(Exception):
 
 class UnknownTransaction(Exception):
     pass
+
+
+class InvalidAddressException(Exception):
+    pass

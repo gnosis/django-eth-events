@@ -4,6 +4,7 @@ from eth_tester import EthereumTester
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..event_listener import EventListener
+from ..exceptions import InvalidAddressException
 from ..factories import DaemonFactory
 from ..models import Daemon
 from ..utils import normalize_address_without_0x
@@ -129,3 +130,51 @@ class TestDaemon(TestCase):
             },
             decoded[1]
         )
+
+    def test_parse_contract(self):
+        contracts = [
+            {
+                'NAME': 'My custom event',
+                'EVENT_ABI': {},
+                'EVENT_DATA_RECEIVER': 'django_eth_events.tests.utils.CentralizedOraclesReceiver',
+                'ADDRESSES': ['0xd3CDa913DeB6F67967B99d67fBdFA1712c293604',
+                              'A823A913dEb6F67967B99D67fbdFa1712c293604'
+                              '0xd3Cda913DeB6F67967B99d67fBdFA1712c293604']
+            }
+        ]
+        with self.assertRaises(InvalidAddressException):
+            EventListener(contract_map=contracts,
+                          provider=EthereumTesterProvider(EthereumTester()))
+
+        contracts = [
+            {
+                'NAME': 'My custom event',
+                'EVENT_ABI': {},
+                'EVENT_DATA_RECEIVER': 'made_up_function',
+                'ADDRESSES': ['d3CDa913DeB6F67967B99d67fBdFA1712c293604',
+                              'A823A913dEb6F67967B99D67fbdFa1712c293604']
+
+            }
+        ]
+
+        with self.assertRaises(ImportError):
+            EventListener(contract_map=contracts,
+                          provider=EthereumTesterProvider(EthereumTester()))
+
+        contracts = [
+            {
+                'NAME': 'My custom event',
+                'EVENT_ABI': {},
+                'EVENT_DATA_RECEIVER': 'django_eth_events.tests.utils.CentralizedOraclesReceiver',
+                'ADDRESSES': ['a823a913deb6f67967b99d67fbdfa1712c293604',
+                              'A823A913dEb6F67967B99D67fbdFa1712c293604',
+                              '0xA823A913dEb6F67967B99D67fbdFa1712c293604',
+                              '0xa823a913deb6f67967b99d67fbdfa1712c293604']
+            }
+        ]
+
+        el = EventListener(contract_map=contracts,
+                           provider=EthereumTesterProvider(EthereumTester()))
+
+        self.assertEqual(len(el.original_contract_map[0]['ADDRESSES']), 4)
+        self.assertEqual(len(el.contract_map[0]['ADDRESSES']), 1)
