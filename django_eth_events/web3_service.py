@@ -2,9 +2,9 @@ import concurrent.futures
 import socket
 
 from django.conf import settings
+from requests.exceptions import ConnectionError
 from web3 import HTTPProvider, IPCProvider, Web3
 from web3.middleware import geth_poa_middleware
-from requests.exceptions import ConnectionError
 
 from .exceptions import (UnknownBlock, UnknownTransaction,
                          Web3ConnectionException)

@@ -1,6 +1,6 @@
 import errno
 import traceback
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -96,7 +96,7 @@ def deadlock_checker(lock_interval=60000):
     try:
         logger.info("Deadlock checker, lock_interval %d" % lock_interval)
         daemon = Daemon.get_solo()
-        valid_interval = datetime.now() - timedelta(milliseconds=lock_interval)
+        valid_interval = timezone.now() - timedelta(milliseconds=lock_interval)
         if daemon.modified < valid_interval and daemon.listener_lock is True:
             # daemon is deadlocked
             logger.info('Found deadlocked Daemon task, block number %d' % daemon.block_number)
