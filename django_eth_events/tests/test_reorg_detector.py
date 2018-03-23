@@ -29,7 +29,7 @@ def start_mock_server():
 
 class DummyEventReceiver(AbstractEventReceiver):
     def __init__(self, *args, **kwars):
-        super(DummyEventReceiver, self).__init__(args, kwars)
+        super().__init__(args, kwars)
         self.stage = 'initial'
 
     def save(self, decoded_event, block_info):

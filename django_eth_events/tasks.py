@@ -55,14 +55,14 @@ def event_listener(provider=None):
             if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED
                                           or err.errno == errno.ECONNRESET
                                           or err.errno == errno.ECONNREFUSED):
-                logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
+                logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, err))
             elif (isinstance(err, HTTPError)
                   or isinstance(err, PoolError)
                   or isinstance(err, LocationValueError)
                   or isinstance(err, RequestException)):
-                logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, str(err)))
+                logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, err))
             else:
-                logger.error("Halting system due to error {}".format(str(err)))
+                logger.error("Halting system due to error {}".format(err))
                 daemon = Daemon.get_solo()
                 daemon.set_halted()
                 daemon.save()

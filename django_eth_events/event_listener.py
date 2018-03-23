@@ -35,7 +35,7 @@ class SingletonListener(object):
         elif not self.instance:
             # In Python 3.4+ is not allowed to send args to __new__ if __init__
             # is defined
-            # cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
+            # cls._instance = super().__new__(cls, *args, **kwargs)
             self.instance = self.klass(contract_map=contract_map, provider=provider)
         return self.instance
 
