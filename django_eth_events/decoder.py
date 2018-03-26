@@ -109,7 +109,7 @@ class Decoder(Singleton):
         decoded_event = {
             'params': decoded_params,
             'name': method['name'],
-            'address': normalize_address_without_0x(log['address'])
+            'address': self.decode_address(log['address'])
         }
 
         return decoded_event
