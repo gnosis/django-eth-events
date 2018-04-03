@@ -32,17 +32,16 @@ class Web3Service(object):
         return getattr(self.instance, item)
 
     class __Web3Service:
-        web3 = None
         default_provider_class = HTTPProvider
         max_workers = int(getattr(settings, 'ETHEREUM_MAX_WORKERS', 10))
+        ethereum_ipc_path = getattr(settings, 'ETHEREUM_IPC_PATH', None)
 
         def __init__(self, provider=None):
             if not provider:
-                ethereum_ipc_path = getattr(settings, 'ETHEREUM_IPC_PATH', None)
-                if ethereum_ipc_path:
+                if self.ethereum_ipc_path:
                     self.default_provider_class = IPCProvider
                     provider = self.default_provider_class(
-                        ipc_path=settings.ETHEREUM_IPC_PATH
+                        ipc_path=self.ethereum_ipc_path
                     )
                 else:
                     protocol = 'https' if settings.ETHEREUM_NODE_SSL else 'http'
