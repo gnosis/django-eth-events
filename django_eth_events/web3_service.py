@@ -1,4 +1,5 @@
 import concurrent.futures
+import logging
 import socket
 
 from django.conf import settings
@@ -8,6 +9,8 @@ from web3.middleware import geth_poa_middleware
 
 from .exceptions import (UnknownBlock, UnknownTransaction,
                          Web3ConnectionException)
+
+logger = logging.getLogger(__name__)
 
 
 class Web3Service(object):
@@ -65,6 +68,20 @@ class Web3Service(object):
         def main_provider(self):
             return self.web3.providers[0]
 
+        def make_sure_cheksumed_address(self, address):
+            """
+            Makes sure an address is checksumed. If not, returns it checksumed
+            and logs a warning
+            :param address: ethereum address
+            :return: checksumed 0x address
+            """
+            if self.web3.isChecksumAddress(address):
+                return address
+            else:
+                checksumed_address = self.web3.toChecksumAddress(address)
+                logger.warning("Address %s is not checksumed, should be %s", address, checksumed_address)
+                return checksumed_address
+
         def is_connected(self):
             try:
                 return self.web3.isConnected()
@@ -98,7 +115,7 @@ class Web3Service(object):
                 if receipt is None:
                     raise UnknownTransaction
                 return receipt
-            except:
+            except Exception:
                 if not self.is_connected():
                     raise Web3ConnectionException('Web3 provider is not connected')
                 else:
@@ -117,7 +134,7 @@ class Web3Service(object):
                 if not block:
                     raise UnknownBlock
                 return block
-            except:
+            except Exception:
                 if not self.is_connected():
                     raise Web3ConnectionException('Web3 provider is not connected')
                 else:
