@@ -75,6 +75,7 @@ class EventListener(object):
                     if self.web3.isAddress('0x' + remove_0x_head(address)):
                         contract_parsed['ADDRESSES'].append(normalize_address_without_0x(address))
                     else:
+                        logger.error("Address %s is not valid", address)
                         raise InvalidAddressException(address)
 
                     # Remove duplicated

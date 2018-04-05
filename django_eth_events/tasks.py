@@ -52,17 +52,17 @@ def event_listener(provider=None):
             logger.error('Web3 cannot connect to providers')
         except Exception as err:
             # Not halting system for connection error cases
-            if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED
-                                          or err.errno == errno.ECONNRESET
-                                          or err.errno == errno.ECONNREFUSED):
+            if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED or
+                                          err.errno == errno.ECONNRESET or
+                                          err.errno == errno.ECONNREFUSED):
                 logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, err))
-            elif (isinstance(err, HTTPError)
-                  or isinstance(err, PoolError)
-                  or isinstance(err, LocationValueError)
-                  or isinstance(err, RequestException)):
+            elif (isinstance(err, HTTPError) or
+                  isinstance(err, PoolError) or
+                  isinstance(err, LocationValueError) or
+                  isinstance(err, RequestException)):
                 logger.error("An error has occurred, errno: {}, trace: {}".format(err.errno, err))
             else:
-                logger.error("Halting system due to error {}".format(err))
+                logger.error("Halting system due to error %s", err)
                 daemon = Daemon.get_solo()
                 daemon.set_halted()
                 daemon.save()
