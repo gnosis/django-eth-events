@@ -58,6 +58,25 @@ class EventListener(object):
         self.original_contract_map = contract_map
         self.contract_map = self.parse_contract_map(contract_map) if contract_map else contract_map
 
+    @property
+    def provider(self):
+        return self.web3_service.main_provider
+
+    @staticmethod
+    def import_class_from_string(class_string):
+        try:
+            return import_string(class_string)
+        except ImportError as err:
+            logger.error("Cannot load class for contract: {}", err.msg)
+            raise err
+
+    def get_current_block_number(self):
+        return self.web3_service.get_current_block_number()
+
+    @staticmethod
+    def next_block(cls):
+        return Daemon.get_solo().block_number
+
     def parse_contract_map(self, contract_map):
         """
         Resolves contracts string to their corresponding classes
@@ -86,24 +105,6 @@ class EventListener(object):
             contract_parsed['EVENT_DATA_RECEIVER_CLASS'] = self.import_class_from_string(contract['EVENT_DATA_RECEIVER'])()
             contracts_parsed.append(contract_parsed)
         return contracts_parsed
-
-    def import_class_from_string(self, class_string):
-        try:
-            return import_string(class_string)
-        except ImportError as err:
-            logger.error("Cannot load class for contract: {}", err.msg)
-            raise err
-
-    @property
-    def provider(self):
-        return self.web3_service.main_provider
-
-    def get_current_block_number(self):
-        return self.web3_service.get_current_block_number()
-
-    @staticmethod
-    def next_block(cls):
-        return Daemon.get_solo().block_number
 
     def get_next_mined_block_numbers(self, daemon_block_number, current_block_number):
         """
@@ -234,7 +235,9 @@ class EventListener(object):
         return Block.objects.bulk_create(blocks_to_backup)
 
     def clean_old_backups(self, daemon_block_number):
-        return Block.objects.filter(block_number__lt=daemon_block_number-self.max_blocks_to_backup).delete()
+        return Block.objects.filter(
+            block_number__lt=daemon_block_number - self.max_blocks_to_backup
+        ).delete()
 
     def execute(self):
         daemon = Daemon.get_solo()
