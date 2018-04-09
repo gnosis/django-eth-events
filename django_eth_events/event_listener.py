@@ -67,7 +67,7 @@ class EventListener(object):
         try:
             return import_string(class_string)
         except ImportError as err:
-            logger.error("Cannot load class for contract: {}", err.msg)
+            logger.error("Cannot load class for contract: %s", err.msg)
             raise err
 
     def get_current_block_number(self):
@@ -111,7 +111,8 @@ class EventListener(object):
         Returns a range with the block numbers of blocks mined since last event_listener execution
         :return: iter(int)
         """
-        logger.info('Blocks mined, daemon: {} current: {}'.format(daemon_block_number, current_block_number))
+        logger.info('Blocks mined, daemon-block-number=%d node-block-number=%d',
+                    daemon_block_number, current_block_number)
         if daemon_block_number < current_block_number:
             if current_block_number - daemon_block_number > self.max_blocks_to_process:
                 blocks_to_update = range(daemon_block_number + 1, daemon_block_number + self.max_blocks_to_process)
@@ -122,7 +123,7 @@ class EventListener(object):
             return range(0)
 
     def update_block_number(self, daemon, block_number):
-        logger.info('Update daemon block_number={}'.format(block_number))
+        logger.info('Update daemon-block_number=%d', block_number)
         daemon.block_number = block_number
         daemon.save()
 
@@ -152,7 +153,7 @@ class EventListener(object):
                 addresses = contract['ADDRESSES_GETTER_CLASS'].get_addresses()
         except Exception as e:
             logger.error(e)
-            raise LookupError("Could not retrieve watched addresses for contract {}".format(contract))
+            raise LookupError("Could not retrieve watched addresses for contract %s", contract)
 
         normalized_addresses = {normalize_address_without_0x(address) for address in addresses}
         return normalized_addresses
@@ -175,10 +176,10 @@ class EventListener(object):
         """
         # get all blocks to rollback
         blocks = Block.objects.filter(block_number__gt=block_number).order_by('-block_number')
-        logger.warning('Rolling back {} blocks, until block number {}'.format(blocks.count(), block_number))
+        logger.warning('Rolling back %d blocks, until block-number=%d', blocks.count(), block_number)
         for block in blocks:
             decoded_logs = loads(block.decoded_logs)
-            logger.warning('Rolling back {} block, {} logs'.format(block.block_number, len(decoded_logs)))
+            logger.warning('Rolling back %d block and %d logs', block.block_number, len(decoded_logs))
             if len(decoded_logs):
                 # We loop decoded logs on inverse order because there might be dependencies inside the same block
                 # And must be processed from last applied to first applied
@@ -272,9 +273,10 @@ class EventListener(object):
         if not next_mined_block_numbers:
             logger.info('No blocks mined')
         else:
-            logger.info('{} blocks mined from {} to {}'.format(len(next_mined_block_numbers),
-                                                               next_mined_block_numbers[0],
-                                                               next_mined_block_numbers[-1]))
+            logger.info('%d blocks mined from %d to %d',
+                        len(next_mined_block_numbers),
+                        next_mined_block_numbers[0],
+                        next_mined_block_numbers[-1])
 
             prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
             last_block_number = next_mined_block_numbers[-1]
@@ -284,7 +286,7 @@ class EventListener(object):
                 # first get un-decoded logs and the block info
                 current_block = prefetched_blocks[block_number]
                 logs = self.get_logs(current_block)
-                logger.info('Got {} logs in block {}'.format(len(logs), current_block['number']))
+                logger.info('Got %d logs in block %d', len(logs), current_block['number'])
 
                 ###########################
                 # Decode logs #
@@ -301,12 +303,12 @@ class EventListener(object):
                         target_logs = [log for log in logs
                                        if normalize_address_without_0x(log['address']) in watched_addresses]
 
-                        logger.info('Found {} logs'.format(len(target_logs)))
+                        logger.info('Found %d logs', len(target_logs))
 
                         # Decode logs
                         decoded_logs = self.decoder.decode_logs(target_logs)
 
-                        logger.info('Decoded {} logs'.format(len(decoded_logs)))
+                        logger.info('Decoded %d logs', len(decoded_logs))
 
                         for log in decoded_logs:
                             # Save events
