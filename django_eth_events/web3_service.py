@@ -140,15 +140,6 @@ class Web3Service(object):
                 else:
                     raise UnknownBlock
 
-        def get_current_block(self, full_transactions=False):
-            """
-            :param full_transactions:
-            :raises Web3ConnectionException
-            :raises UnknownBlock
-            :return:
-            """
-            return self.get_block(self.get_current_block_number(), full_transactions)
-
         def get_blocks(self, block_identifiers, full_transactions=False):
             """
             :param block_identifiers:
@@ -168,3 +159,28 @@ class Web3Service(object):
                     blocks[block_id] = block
 
                 return blocks
+
+        def get_current_block(self, full_transactions=False):
+            """
+            :param full_transactions:
+            :raises Web3ConnectionException
+            :raises UnknownBlock
+            :return:
+            """
+            return self.get_block(self.get_current_block_number(), full_transactions)
+
+        def get_logs(self, block):
+            """
+            Extract raw logs from web3 ethereum block
+            :param block: web3 block to get logs from
+            :return: list of log dictionaries
+            """
+
+            logs = []
+
+            for tx in block['transactions']:
+                receipt = self.get_transaction_receipt(tx)
+                logs.extend(receipt.get('logs', []))
+
+            return logs
+

@@ -127,23 +127,6 @@ class EventListener(object):
         daemon.block_number = block_number
         daemon.save()
 
-    def get_logs(self, block):
-        """
-        By a given block number returns a pair logs, block_info
-        logs it's an array of decoded ethereum log dictionaries
-        and block info it's a dic
-        :param block:
-        :return:
-        """
-
-        logs = []
-
-        for tx in block['transactions']:
-            receipt = self.web3_service.get_transaction_receipt(tx)
-            logs.extend(receipt.get('logs', []))
-
-        return logs
-
     def get_watched_contract_addresses(self, contract):
         addresses = None
         try:
@@ -273,19 +256,23 @@ class EventListener(object):
         if not next_mined_block_numbers:
             logger.info('No blocks mined')
         else:
-            logger.info('%d blocks mined from %d to %d',
+            logger.info('%d blocks mined from %d to %d, prefetching blocks',
                         len(next_mined_block_numbers),
                         next_mined_block_numbers[0],
                         next_mined_block_numbers[-1])
 
             prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
+            logger.info('Finished block prefetching')
+
             last_block_number = next_mined_block_numbers[-1]
             self.backup_blocks(prefetched_blocks, last_block_number)
+            logger.info('Finished block backup')
 
             for block_number in next_mined_block_numbers:
                 # first get un-decoded logs and the block info
                 current_block = prefetched_blocks[block_number]
-                logs = self.get_logs(current_block)
+                logger.info('Getting every log for block %d', current_block['number'])
+                logs = self.web3_service.get_logs(current_block)
                 logger.info('Got %d logs in block %d', len(logs), current_block['number'])
 
                 ###########################
