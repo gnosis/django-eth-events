@@ -176,13 +176,19 @@ class Web3Service(object):
             :return: list of log dictionaries
             """
 
+            logs = []
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                future_transaction_receipts = [executor.submit(self.get_transaction_receipt, tx)
-                                               for tx in block['transactions']]
+                future_receipts_with_tx = {executor.submit(self.get_transaction_receipt, tx): tx
+                                           for tx in block['transactions']}
 
-                logs = []
-                for future in concurrent.futures.as_completed(future_transaction_receipts):
+                tx_with_receipt = {}
+                for future in concurrent.futures.as_completed(future_receipts_with_tx):
+                    tx = future_receipts_with_tx[future]
                     receipt = future.result()
+                    tx_with_receipt[tx] = receipt
+
+                for tx in block['transactions']:
+                    receipt = tx_with_receipt[tx]
                     logs.extend(receipt.get('logs', []))
 
-                return logs
+            return logs
