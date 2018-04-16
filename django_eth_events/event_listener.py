@@ -268,6 +268,11 @@ class EventListener(object):
             self.backup_blocks(prefetched_blocks, last_block_number)
             logger.info('Finished block backup')
 
+            # Prepare decoder for contracts
+            for contract in self.contract_map:
+                # Add ABI
+                self.decoder.add_abi(contract['EVENT_ABI'])
+
             for block_number in next_mined_block_numbers:
                 # first get un-decoded logs and the block info
                 current_block = prefetched_blocks[block_number]
@@ -280,9 +285,6 @@ class EventListener(object):
                 ###########################
                 if logs:
                     for contract in self.contract_map:
-                        # Add ABI
-                        self.decoder.add_abi(contract['EVENT_ABI'])
-
                         # Get watched contract addresses
                         watched_addresses = self.get_watched_contract_addresses(contract)
 
@@ -290,7 +292,7 @@ class EventListener(object):
                         target_logs = [log for log in logs
                                        if normalize_address_without_0x(log['address']) in watched_addresses]
 
-                        logger.info('Found %d logs', len(target_logs))
+                        logger.info('Found %d relevant logs', len(target_logs))
 
                         # Decode logs
                         decoded_logs = self.decoder.decode_logs(target_logs)
@@ -311,6 +313,9 @@ class EventListener(object):
                                         log,
                                         contract['EVENT_DATA_RECEIVER']
                                     )
+
+                        if decoded_logs:
+                            logger.info('Processed %d logs in block %d', len(decoded_logs), block_number)
 
                 daemon.block_number = block_number
 

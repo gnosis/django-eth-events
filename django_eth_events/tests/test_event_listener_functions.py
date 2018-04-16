@@ -17,7 +17,7 @@ class TestDaemon(TestCase):
         self.el = EventListener(provider=EthereumTesterProvider(EthereumTester()))
         self.provider = self.el.provider
         self.el.web3.eth.defaultAccount = self.el.web3.eth.coinbase
-        self.el.decoder.methods = {}
+        self.el.decoder.reset()
         self.maxDiff = None
 
     def tearDown(self):
@@ -52,7 +52,7 @@ class TestDaemon(TestCase):
         self.assertEqual(len(self.el.decoder.methods), 6)
         self.assertEqual(self.el.decoder.add_abi([{'nothing': 'wrong'}]), 0)
 
-        self.assertEqual(self.el.decoder.add_abi(abi), 6)
+        self.assertEqual(self.el.decoder.add_abi(abi), 0)
         self.assertEqual(self.el.decoder.add_abi([{'nothing': 'wrong'}]), 0)
 
     def test_get_logs(self):

@@ -183,4 +183,3 @@ class Web3Service(object):
                 logs.extend(receipt.get('logs', []))
 
             return logs
-

@@ -1,14 +1,13 @@
-# from celery.utils.log import get_task_logger
 import binascii
+from logging import getLogger
 
 from eth_abi import decode_abi
 from ethereum.utils import sha3
-from hexbytes import HexBytes
 
 from .singleton import Singleton
 from .utils import normalize_address_without_0x, remove_0x_head
 
-# logger = get_task_logger(__name__)
+logger = getLogger(__name__)
 
 
 class Decoder(Singleton):
@@ -18,6 +17,11 @@ class Decoder(Singleton):
     """
 
     methods = {}
+    added_abis = {}
+
+    def reset(self):
+        self.methods = {}
+        self.added_abis = {}
 
     @staticmethod
     def get_method_id(item):
@@ -30,28 +34,34 @@ class Decoder(Singleton):
 
         return binascii.hexlify(sha3(method_header)).decode('ascii')
 
-    def add_abi(self, abi):
+    def add_abi(self, abi) -> int:
         """
         Add ABI array into the decoder collection, in this step the method id is generated from:
         sha3(function_name + '(' + param_type1 + ... + param_typeN + ')')
         :param abi: Array of dictionaries
-        :return: Integer (items added)
+        :return: Items added
+        :rtype: int
         """
         added = 0
-        for item in abi:
-            if item.get('name'):
-                method_id = self.get_method_id(item)
-                self.methods[method_id] = item
-                added += 1
+        abi_sha3 = sha3(str(abi))
+        # Check that abi was not processed before
+        if abi_sha3 not in self.added_abis:
+            for item in abi:
+                if item.get('name'):
+                    method_id = self.get_method_id(item)
+                    self.methods[method_id] = item
+                    added += 1
+            self.added_abis[abi_sha3] = None
         return added
 
-    def remove_abi(self, abis):
+    def remove_abi(self, abi):
         """
         For testing purposes, we won't sometimes to remove the ABI methods from the decoder
-        :param abis: Array of Ethereum address
+        :param abi: Array of dictionaries
         :return: None
         """
-        for item in abis:
+        self.added_abis = {}
+        for item in abi:
             if item.get('name'):
                 method_id = self.get_method_id(item)
                 if self.methods.get(method_id):

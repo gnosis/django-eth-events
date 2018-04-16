@@ -23,12 +23,14 @@ class TestDecoder(TestCase):
     decoder = Decoder()
 
     def setUp(self):
-        self.decoder.methods = {}
+        self.decoder.reset()
 
     def test_add_abis(self):
         self.decoder.add_abi([])
         self.assertEqual(len(self.decoder.methods), 0)
-        self.decoder.add_abi(self.test_abi)
+        self.assertEqual(self.decoder.add_abi(self.test_abi), 5)
+        # Make sure second time same abi is not processed
+        self.assertEqual(self.decoder.add_abi(self.test_abi), 0)
         self.assertEqual(len(self.decoder.methods), 5)
         self.decoder.remove_abi([])
         self.assertEqual(len(self.decoder.methods), 5)
