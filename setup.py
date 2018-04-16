@@ -14,18 +14,18 @@ def read_version():
         exec(ver_file.read(), main_ns)
     return main_ns['__version__']
 
+
 version = read_version()
 
-
 requirements = [
-    "celery==4.1.0",
-    "Django==2.0.3",
-    "django-solo==1.1.3",
-    "eth-abi==1.0.0",
-    "eth-utils==1.0.1",
+    "celery>=4.1.0",
+    "Django>=2",
+    "django-solo>=1.1.3",
+    "eth-abi>=1.0.0",
+    "eth-utils>=1.0.2",
     "ethereum==1.6.1",
     "kombu==4.1.0",
-    "web3==4.0.0b11",
+    "web3>=4",
 ]
 
 setup(
