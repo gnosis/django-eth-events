@@ -149,7 +149,7 @@ class Web3Service(object):
             :return:
             """
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                # Start the load operations and mark each future with its URL
+                # Get blocks from ethereum node and mark each future with its block_id
                 future_to_block_id = {executor.submit(self.get_block, block_id, full_transactions): block_id
                                       for block_id in block_identifiers}
                 blocks = {}
@@ -176,10 +176,13 @@ class Web3Service(object):
             :return: list of log dictionaries
             """
 
-            logs = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                future_transaction_receipts = [executor.submit(self.get_transaction_receipt, tx)
+                                               for tx in block['transactions']]
 
-            for tx in block['transactions']:
-                receipt = self.get_transaction_receipt(tx)
-                logs.extend(receipt.get('logs', []))
+                logs = []
+                for future in concurrent.futures.as_completed(future_transaction_receipts):
+                    receipt = future.result()
+                    logs.extend(receipt.get('logs', []))
 
-            return logs
+                return logs
