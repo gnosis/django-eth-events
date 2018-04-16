@@ -85,6 +85,10 @@ class EventListener(object):
         """
         contracts_parsed = []
         for contract in contract_map:
+            if 'NAME' not in contract:
+                logger.error("Missing `NAME` for event listener")
+                raise ValueError
+
             contract_parsed = contract.copy()
             # Parse addresses (normalize and remove 0x). Throws exception if address is invalid
             if 'ADDRESSES' in contract:
@@ -273,6 +277,9 @@ class EventListener(object):
                 # Add ABI
                 self.decoder.add_abi(contract['EVENT_ABI'])
 
+            # When we have address getters caching can save us a lot of time
+            contract_address_cache = {}
+
             for block_number in next_mined_block_numbers:
                 # first get un-decoded logs and the block info
                 current_block = prefetched_blocks[block_number]
@@ -285,8 +292,13 @@ class EventListener(object):
                 ###########################
                 if logs:
                     for contract in self.contract_map:
+
                         # Get watched contract addresses
-                        watched_addresses = self.get_watched_contract_addresses(contract)
+                        if contract['NAME'] in contract_address_cache:
+                            watched_addresses = contract_address_cache[contract['NAME']]
+                        else:
+                            watched_addresses = self.get_watched_contract_addresses(contract)
+                            contract_address_cache[contract['NAME']] = watched_addresses
 
                         # Filter logs by relevant addresses
                         target_logs = [log for log in logs
@@ -300,6 +312,10 @@ class EventListener(object):
                         logger.info('Decoded %d logs', len(decoded_logs))
 
                         for log in decoded_logs:
+
+                            # Clear cache, maybe new addresses are stored
+                            contract_address_cache = {}
+
                             # Save events
                             instance = self.save_event(contract, log, current_block)
 
