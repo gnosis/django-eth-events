@@ -19,11 +19,11 @@ version = read_version()
 
 requirements = [
     "celery>=4.1.0",
-    "Django>=2",
+    "Django>=2.0.0",
     "django-solo>=1.1.3",
     "eth-abi>=1.0.0",
     "eth-utils>=1.0.2",
-    "ethereum==1.6.1",
+    "ethereum>=1.6.1<2.0.0",
     "kombu==4.1.0",
     "web3>=4",
 ]
