@@ -28,7 +28,7 @@ class TestDaemonExec(TestCase):
         # create oracles
         centralized_contract_factory = self.web3.eth.contract(abi=centralized_oracle_abi,
                                                               bytecode=centralized_oracle_bytecode)
-        tx_hash = centralized_contract_factory.deploy()
+        tx_hash = centralized_contract_factory.constructor().transact()
         self.centralized_oracle_factory_address = self.web3.eth.getTransactionReceipt(tx_hash).get('contractAddress')
         self.centralized_oracle_factory = self.web3.eth.contract(self.centralized_oracle_factory_address,
                                                                  abi=centralized_oracle_abi)
