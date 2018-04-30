@@ -246,3 +246,14 @@ class CentralizedOraclesReceiver(AbstractEventReceiver):
 
     def rollback(self, decoded_event, block_info):
         CentralizedOracle().pop()
+
+
+class ErroredCentralizedOraclesReceiver(AbstractEventReceiver):
+    """
+    A dummy Centralized Oracle receiver useful for testing atomic transactions
+    """
+    def save(self, decoded_event, block_info):
+        1/0
+
+    def rollback(self, decoded_event, block_info):
+        1/0

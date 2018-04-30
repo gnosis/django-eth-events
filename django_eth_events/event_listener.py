@@ -2,6 +2,7 @@ from json import dumps, loads
 
 from celery.utils.log import get_task_logger
 from django.conf import settings
+from django.db import transaction
 from django.utils.module_loading import import_string
 
 from .decoder import Decoder
@@ -115,8 +116,8 @@ class EventListener(object):
         Returns a range with the block numbers of blocks mined since last event_listener execution
         :return: iter(int)
         """
-        logger.info('Blocks mined, daemon-block-number=%d node-block-number=%d',
-                    daemon_block_number, current_block_number)
+        logger.debug('Blocks mined, daemon-block-number=%d node-block-number=%d',
+                     daemon_block_number, current_block_number)
         if daemon_block_number < current_block_number:
             if current_block_number - daemon_block_number > self.max_blocks_to_process:
                 blocks_to_update = range(daemon_block_number + 1, daemon_block_number + self.max_blocks_to_process)
@@ -127,7 +128,7 @@ class EventListener(object):
             return range(0)
 
     def update_block_number(self, daemon, block_number):
-        logger.info('Update daemon-block_number=%d', block_number)
+        logger.debug('Update daemon-block-number=%d', block_number)
         daemon.block_number = block_number
         daemon.save()
 
@@ -228,15 +229,11 @@ class EventListener(object):
         ).delete()
 
     def execute(self):
-        daemon = Daemon.get_solo()
-        daemon_start_block_number = daemon.block_number
-        if daemon.is_executing():
-            try:
+        with transaction.atomic():
+            daemon = Daemon.get_solo()
+            if daemon.is_executing():
+                # Execution done atomicitically
                 self.check_blocks(daemon)
-            finally:
-                # Update block number after execution if changed
-                if daemon_start_block_number != daemon.block_number:
-                    self.update_block_number(daemon, daemon.block_number)
 
     def check_blocks(self, daemon):
         """
@@ -258,19 +255,21 @@ class EventListener(object):
                                                                      current_block_number=current_block_number)
 
         if not next_mined_block_numbers:
-            logger.info('No blocks mined')
+            logger.debug('No blocks mined')
         else:
-            logger.info('%d blocks mined from %d to %d, prefetching blocks',
-                        len(next_mined_block_numbers),
+            logger.info('Blocks mined from %d to %d, prefetching %d blocks, daemon-block-number=%d',
                         next_mined_block_numbers[0],
-                        next_mined_block_numbers[-1])
+                        next_mined_block_numbers[-1],
+                        len(next_mined_block_numbers),
+                        daemon.block_number)
 
             prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
-            logger.info('Finished block prefetching')
+            logger.debug('Finished block prefetching')
 
             last_block_number = next_mined_block_numbers[-1]
+
             self.backup_blocks(prefetched_blocks, last_block_number)
-            logger.info('Finished block backup')
+            logger.debug('Finished block backup')
 
             # Prepare decoder for contracts
             for contract in self.contract_map:
@@ -283,9 +282,9 @@ class EventListener(object):
             for block_number in next_mined_block_numbers:
                 # first get un-decoded logs and the block info
                 current_block = prefetched_blocks[block_number]
-                logger.info('Getting every log for block %d', current_block['number'])
+                logger.debug('Getting every log for block %d', current_block['number'])
                 logs = self.web3_service.get_logs(current_block)
-                logger.info('Got %d logs in block %d', len(logs), current_block['number'])
+                logger.debug('Got %d logs in block %d', len(logs), current_block['number'])
 
                 ###########################
                 # Decode logs #
@@ -309,7 +308,7 @@ class EventListener(object):
                         # Decode logs
                         decoded_logs = self.decoder.decode_logs(target_logs)
 
-                        logger.info('Decoded %d logs', len(decoded_logs))
+                        logger.info('Decoded %d relevant logs', len(decoded_logs))
 
                         for log in decoded_logs:
 
@@ -331,9 +330,11 @@ class EventListener(object):
                                     )
 
                         if decoded_logs:
-                            logger.info('Processed %d logs in block %d', len(decoded_logs), block_number)
+                            logger.info('Processed %d relevant logs in block %d', len(decoded_logs), block_number)
 
                 daemon.block_number = block_number
 
+            # Make changes persistent, update block_number
+            daemon.save()
             # Remove older backups
             self.clean_old_backups(daemon.block_number)

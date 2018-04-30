@@ -43,24 +43,24 @@ def event_listener(provider=None):
             el = EventListener(provider=provider)
             el.execute()
         except UnknownTransaction:
-            logger.error('Unknown Transaction hash, might be a reorg')
+            logger.exception('Unknown Transaction hash, might be a reorg')
         except UnknownBlock:
-            logger.error('Cannot get block by number/hash, might be a reorg')
+            logger.exception('Cannot get block by number/hash, might be a reorg')
         except UnknownBlockReorgException:
-            logger.error('Unknown Block hash, might be a reorg')
+            logger.exception('Unknown Block hash, might be a reorg')
         except Web3ConnectionException:
-            logger.error('Web3 cannot connect to providers')
+            logger.exception('Web3 cannot connect to providers')
         except Exception as err:
             # Not halting system for connection error cases
             if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED or
                                           err.errno == errno.ECONNRESET or
                                           err.errno == errno.ECONNREFUSED):
-                logger.error('An error has occurred, errno: %d, trace: %s', err.errno, err)
+                logger.exception('An error has occurred, errno: %d', err.errno)
             elif (isinstance(err, HTTPError) or
                   isinstance(err, PoolError) or
                   isinstance(err, LocationValueError) or
                   isinstance(err, RequestException)):
-                logger.error('An error has occurred, errno: %d, trace: %s', err.errno, err)
+                logger.exception('An error has occurred, errno: %d', err.errno)
             else:
                 logger.error('Halting system due to error', exc_info=True)
                 daemon = Daemon.get_solo()
@@ -70,7 +70,7 @@ def event_listener(provider=None):
                 last_error_block_number = daemon.last_error_block_number
                 # get current block number from database
                 current_block_number = daemon.block_number
-                logger.info('Current block number: %d, Last error block number: %d',
+                logger.error('Daemon block number: %d, Last error block number: %d',
                             current_block_number, last_error_block_number)
                 if last_error_block_number < current_block_number:
                     # save block number into cache
@@ -79,7 +79,7 @@ def event_listener(provider=None):
                     daemon.save()
                     send_email(traceback.format_exc())
         finally:
-            logger.info('Releasing LOCK')
+            logger.debug('Releasing LOCK')
             with transaction.atomic():
                 daemon = Daemon.objects.select_for_update().first()
                 daemon.listener_lock = False
