@@ -229,17 +229,11 @@ class EventListener(object):
         ).delete()
 
     def execute(self):
-        daemon = Daemon.get_solo()
-        daemon_start_block_number = daemon.block_number
-        if daemon.is_executing():
-            # Execution done atomicitically
-            with transaction.atomic():
-                try:
-                    self.check_blocks(daemon)
-                finally:
-                    # Update block number after execution if changed
-                    if daemon_start_block_number != daemon.block_number:
-                        self.update_block_number(daemon, daemon.block_number)
+        with transaction.atomic():
+            daemon = Daemon.get_solo()
+            if daemon.is_executing():
+                # Execution done atomicitically
+                self.check_blocks(daemon)
 
     def check_blocks(self, daemon):
         """
@@ -339,5 +333,7 @@ class EventListener(object):
 
                 daemon.block_number = block_number
 
+            # Make changes persistent, update block_number
+            daemon.save()
             # Remove older backups
             self.clean_old_backups(daemon.block_number)
