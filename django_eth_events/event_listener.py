@@ -2,6 +2,7 @@ from json import dumps, loads
 
 from celery.utils.log import get_task_logger
 from django.conf import settings
+from django.db import transaction
 from django.utils.module_loading import import_string
 
 from .decoder import Decoder
@@ -231,12 +232,14 @@ class EventListener(object):
         daemon = Daemon.get_solo()
         daemon_start_block_number = daemon.block_number
         if daemon.is_executing():
-            try:
-                self.check_blocks(daemon)
-            finally:
-                # Update block number after execution if changed
-                if daemon_start_block_number != daemon.block_number:
-                    self.update_block_number(daemon, daemon.block_number)
+            # Execution done atomicitically
+            with transaction.atomic():
+                try:
+                    self.check_blocks(daemon)
+                finally:
+                    # Update block number after execution if changed
+                    if daemon_start_block_number != daemon.block_number:
+                        self.update_block_number(daemon, daemon.block_number)
 
     def check_blocks(self, daemon):
         """
@@ -270,6 +273,7 @@ class EventListener(object):
             logger.debug('Finished block prefetching')
 
             last_block_number = next_mined_block_numbers[-1]
+
             self.backup_blocks(prefetched_blocks, last_block_number)
             logger.debug('Finished block backup')
 

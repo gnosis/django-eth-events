@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from json import loads
+from json import loads, dumps
 
 from django.test import TestCase
 from eth_tester import EthereumTester
@@ -104,3 +104,70 @@ class TestDaemonExec(TestCase):
         self.assertEqual(CentralizedOracle().length(), 0)
         self.assertEqual(3, Daemon.get_solo().block_number)
         self.assertEqual(3, Block.objects.all().count())
+
+    def test_atomic_transaction(self):
+        contracts = [
+            {
+                'NAME': 'Centralized Oracle Factory',
+                'EVENT_ABI': centralized_oracle_abi,
+                'EVENT_DATA_RECEIVER': 'django_eth_events.tests.utils.ErroredCentralizedOraclesReceiver',
+                'ADDRESSES': [self.centralized_oracle_factory_address[2::]]
+            }
+        ]
+        atomic_listener = EventListener(contract_map=contracts, provider=self.provider)
+
+        self.assertEqual(0, Block.objects.all().count())
+        self.assertEqual(0, CentralizedOracle().length())
+        self.assertEqual(0, Daemon.get_solo().block_number)
+        # Create centralized oracle
+        tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
+            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+
+        with self.assertRaises(Exception):
+            # raising an exception would make the atomic transaction to fail
+            atomic_listener.execute()
+
+        # Test transaction atomic worked and no updates were committed
+        self.assertEqual(0, CentralizedOracle().length())
+        self.assertEqual(0, Block.objects.all().count())
+        self.assertEqual(0, Daemon.get_solo().block_number)
+        self.assertEqual(2, self.web3.eth.blockNumber)
+
+        # Execute the listener correctly, this will save new blocks
+        self.listener_under_test.execute()
+        self.assertEqual(1, CentralizedOracle().length())
+        self.assertEqual(2, Daemon.get_solo().block_number)
+        self.assertEqual(2, Block.objects.all().count())
+        self.assertEqual(2, self.web3.eth.blockNumber)
+
+        # Reset blockchain (simulates reorg)
+        self.tearDown()
+
+        block = Block.objects.filter(block_number__gt=1).order_by('-block_number').first()
+        logs = loads(block.decoded_logs)
+        logs[0]['event_receiver'] = 'django_eth_events.tests.utils.ErroredCentralizedOraclesReceiver'
+        block.decoded_logs = dumps(logs)
+        block.save()
+
+        accounts = self.web3.eth.accounts
+        self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
+        self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
+        self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
+        tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
+            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+
+        self.assertEqual(1, CentralizedOracle().length())
+        self.assertEqual(2, Daemon.get_solo().block_number)
+        self.assertEqual(2, Block.objects.all().count())
+        self.assertEqual(4, self.web3.eth.blockNumber)
+
+        block_hash1 = remove_0x_head(self.web3.eth.getBlock(1)['hash'].hex())
+        Block.objects.filter(block_number=1).update(block_hash=block_hash1)
+
+        with self.assertRaises(Exception):
+            atomic_listener.execute()
+        # Test atomic rollback worked
+        self.assertEqual(1, CentralizedOracle().length())
+        self.assertEqual(2, Daemon.get_solo().block_number)
+        self.assertEqual(2, Block.objects.all().count())
+        self.assertEqual(4, self.web3.eth.blockNumber)
