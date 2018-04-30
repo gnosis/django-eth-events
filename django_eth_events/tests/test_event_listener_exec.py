@@ -127,7 +127,7 @@ class TestDaemonExec(TestCase):
             # raising an exception would make the atomic transaction to fail
             atomic_listener.execute()
 
-        # Test transaction atomic worked and no updated were committed
+        # Test transaction atomic worked and no updates were committed
         self.assertEqual(0, CentralizedOracle().length())
         self.assertEqual(0, Block.objects.all().count())
         self.assertEqual(0, Daemon.get_solo().block_number)
@@ -140,14 +140,15 @@ class TestDaemonExec(TestCase):
         self.assertEqual(2, Block.objects.all().count())
         self.assertEqual(2, self.web3.eth.blockNumber)
 
+        # Reset blockchain (simulates reorg)
+        self.tearDown()
+
         block = Block.objects.filter(block_number__gt=1).order_by('-block_number').first()
         logs = loads(block.decoded_logs)
         logs[0]['event_receiver'] = 'django_eth_events.tests.utils.ErroredCentralizedOraclesReceiver'
         block.decoded_logs = dumps(logs)
         block.save()
 
-        # Reset blockchain (simulates reorg)
-        self.tearDown()
         accounts = self.web3.eth.accounts
         self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
         self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
