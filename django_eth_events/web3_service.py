@@ -68,7 +68,7 @@ class Web3Service(object):
         def main_provider(self):
             return self.web3.providers[0]
 
-        def make_sure_cheksumed_address(self, address):
+        def make_sure_cheksumed_address(self, address: str) -> str:
             """
             Makes sure an address is checksumed. If not, returns it checksumed
             and logs a warning
@@ -82,24 +82,21 @@ class Web3Service(object):
                 logger.warning("Address %s is not checksumed, should be %s", address, checksumed_address)
                 return checksumed_address
 
-        def is_connected(self):
+        def is_connected(self) -> bool:
             try:
                 return self.web3.isConnected()
             except socket.timeout:
                 return False
 
-        def get_current_block_number(self):
+        def get_current_block_number(self) -> int:
             """
             :raises Web3ConnectionException
             :return: <int>
             """
             try:
                 return self.web3.eth.blockNumber
-            except Exception as e:
-                if not self.is_connected():
-                    raise Web3ConnectionException('Web3 provider is not connected')
-                else:
-                    raise e
+            except (socket.timeout, ConnectionError):
+                raise Web3ConnectionException('Web3 provider is not connected')
 
         def get_transaction_receipt(self, transaction_hash):
             """
@@ -115,11 +112,10 @@ class Web3Service(object):
                 if receipt is None:
                     raise UnknownTransaction
                 return receipt
-            except Exception:
-                if not self.is_connected():
-                    raise Web3ConnectionException('Web3 provider is not connected')
-                else:
-                    raise UnknownTransaction
+            except (socket.timeout, ConnectionError):
+                raise Web3ConnectionException('Web3 provider is not connected')
+            except Exception as e:
+                raise UnknownTransaction from e
 
         def get_block(self, block_identifier, full_transactions=False):
             """
@@ -134,11 +130,10 @@ class Web3Service(object):
                 if not block:
                     raise UnknownBlock
                 return block
-            except Exception:
-                if not self.is_connected():
-                    raise Web3ConnectionException('Web3 provider is not connected')
-                else:
-                    raise UnknownBlock
+            except (socket.timeout, ConnectionError):
+                raise Web3ConnectionException('Web3 provider is not connected')
+            except Exception as e:
+                raise UnknownBlock from e
 
         def get_blocks(self, block_identifiers, full_transactions=False):
             """

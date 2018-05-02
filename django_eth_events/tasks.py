@@ -49,7 +49,7 @@ def event_listener(provider=None):
         except UnknownBlockReorgException:
             logger.exception('Unknown Block hash, might be a reorg')
         except Web3ConnectionException:
-            logger.exception('Web3 cannot connect to providers')
+            logger.exception('Web3 cannot connect to provider/s')
         except Exception as err:
             # Not halting system for connection error cases
             if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED or
