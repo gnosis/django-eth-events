@@ -140,8 +140,7 @@ class EventListener(object):
             elif contract.get('ADDRESSES_GETTER_CLASS'):
                 addresses = contract['ADDRESSES_GETTER_CLASS'].get_addresses()
         except Exception as e:
-            logger.error(e)
-            raise LookupError("Could not retrieve watched addresses for contract %s", contract)
+            raise LookupError("Could not retrieve watched addresses for contract {}".format(contract['NAME'])) from e
 
         normalized_addresses = {normalize_address_without_0x(address) for address in addresses}
         return normalized_addresses
