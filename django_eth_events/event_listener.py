@@ -302,12 +302,14 @@ class EventListener(object):
                         target_logs = [log for log in logs
                                        if normalize_address_without_0x(log['address']) in watched_addresses]
 
-                        logger.info('Found %d relevant logs', len(target_logs))
+                        if target_logs:
+                            logger.info('Found %d relevant logs', len(target_logs))
 
                         # Decode logs
                         decoded_logs = self.decoder.decode_logs(target_logs)
 
-                        logger.info('Decoded %d relevant logs', len(decoded_logs))
+                        if decoded_logs:
+                            logger.info('Decoded %d relevant logs', len(decoded_logs))
 
                         for log in decoded_logs:
 
