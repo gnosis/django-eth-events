@@ -147,8 +147,8 @@ class EventListener(object):
 
     def save_event(self, contract, decoded_log, block_info):
         event_receiver = contract['EVENT_DATA_RECEIVER_CLASS']
-        instance = event_receiver.save(decoded_event=decoded_log, block_info=block_info)
-        return instance
+        with transaction.atomic():
+            return event_receiver.save(decoded_event=decoded_log, block_info=block_info)
 
     def revert_events(self, event_receiver_string, decoded_event, block_info):
         EventReceiver = import_string(event_receiver_string)
