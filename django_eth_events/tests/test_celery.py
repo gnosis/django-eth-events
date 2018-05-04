@@ -73,30 +73,29 @@ class TestCelery(TestCase):
         }
 
         self.event_receivers.append(centralized_event_receiver)
-        setattr(settings, 'ETH_EVENTS', self.event_receivers)
 
-        # Start Celery Task
-        event_listener(self.provider)
-        # Create centralized oracle
-        centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
-            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
-        # Run event listener again
-        event_listener(self.provider)
-        # Do checks
-        daemon = Daemon.get_solo()
-        self.assertTrue(daemon.is_executing())
-        self.assertEqual(daemon.block_number, daemon_factory.block_number + 2)
-        self.assertEqual(Block.objects.all().count(), n_blocks + 2)
-        self.assertFalse(daemon.listener_lock)
+        with self.settings(ETH_EVENTS=self.event_receivers):
+            # Start Celery Task
+            event_listener(self.provider)
+            # Create centralized oracle
+            centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
+                b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+            # Run event listener again
+            event_listener(self.provider)
+            # Do checks
+            daemon = Daemon.get_solo()
+            self.assertTrue(daemon.is_executing())
+            self.assertEqual(daemon.block_number, daemon_factory.block_number + 2)
+            self.assertEqual(Block.objects.all().count(), n_blocks + 2)
+            self.assertFalse(daemon.listener_lock)
 
     def test_event_listener_with_no_blocks(self):
-        setattr(settings, 'ETH_EVENTS', self.event_receivers)
-
-        # Start Celery Task
-        event_listener(self.provider)
-        # Do checks
-        daemon = Daemon.get_solo()
-        self.assertTrue(daemon.is_executing())
-        self.assertEqual(daemon.block_number, 0)
-        self.assertEqual(Block.objects.all().count(), 0)
-        self.assertFalse(daemon.listener_lock)
+        with self.settings(ETH_EVENTS=self.event_receivers):
+            # Start Celery Task
+            event_listener(self.provider)
+            # Do checks
+            daemon = Daemon.get_solo()
+            self.assertTrue(daemon.is_executing())
+            self.assertEqual(daemon.block_number, 0)
+            self.assertEqual(Block.objects.all().count(), 0)
+            self.assertFalse(daemon.listener_lock)
