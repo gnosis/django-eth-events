@@ -65,19 +65,22 @@ def event_listener(provider=None):
                 logger.error('Halting system due to error', exc_info=True)
                 daemon = Daemon.get_solo()
                 daemon.set_halted()
-                daemon.save()
+
                 # get last error block number database
                 last_error_block_number = daemon.last_error_block_number
                 # get current block number from database
                 current_block_number = daemon.block_number
                 logger.error('Daemon block number: %d, Last error block number: %d',
-                            current_block_number, last_error_block_number)
+                             current_block_number, last_error_block_number)
                 if last_error_block_number < current_block_number:
                     # save block number into cache
                     daemon.last_error_block_number = current_block_number
                     daemon.last_error_date_time = timezone.now()
-                    daemon.save()
-                    send_email(traceback.format_exc())
+                    try:
+                        send_email(traceback.format_exc())
+                    except:
+                        logger.exception("Problem sending mail")
+                daemon.save()
         finally:
             logger.debug('Releasing LOCK')
             with transaction.atomic():
