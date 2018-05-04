@@ -37,7 +37,8 @@ class TestDaemon(TestCase):
         self.assertSequenceEqual(self.el.get_next_mined_block_numbers(daemon.block_number,
                                                                       self.el.get_current_block_number()),
                                  [1, 2])
-        self.el.update_block_number(daemon, 2)
+        daemon.block_number = 2
+        daemon.save()
         self.assertSequenceEqual(self.el.get_next_mined_block_numbers(daemon.block_number,
                                                                       self.el.get_current_block_number()),
                                  [])
@@ -88,7 +89,8 @@ class TestDaemon(TestCase):
         self.assertSequenceEqual(self.el.get_next_mined_block_numbers(daemon.block_number,
                                                                       self.el.get_current_block_number()),
                                  [1, 2])
-        self.el.update_block_number(daemon, 2)
+        daemon.block_number = 2
+        daemon.save()
         self.assertSequenceEqual(self.el.get_next_mined_block_numbers(daemon.block_number,
                                                                       self.el.get_current_block_number()),
                                  [])

@@ -223,7 +223,18 @@ class EventListener(object):
         Block.objects.filter(block_number__in=block_numbers_to_delete).delete()
         return Block.objects.bulk_create(blocks_to_backup)
 
-    def clean_old_backups(self, daemon_block_number):
+    def clean_useless_blocks_backup(self, daemon_block_number):
+        """
+        If there's an error during block processing, some blocks will be stored and will be detected
+        as a reorg, so this method will clean blocks stored bigger block number than daemon block number
+        :param daemon_block_number:
+        :return:
+        """
+        return Block.objects.filter(
+            block_number__gt=daemon_block_number
+        ).delete()
+
+    def clean_old_blocks_backup(self, daemon_block_number):
         return Block.objects.filter(
             block_number__lt=daemon_block_number - self.max_blocks_to_backup
         ).delete()
@@ -236,6 +247,7 @@ class EventListener(object):
         if not daemon.is_executing():
             return
 
+        self.clean_useless_blocks_backup(daemon.block_number)
         current_block_number = self.web3_service.get_current_block_number()
         had_reorg, reorg_block_number = check_reorg(daemon.block_number,
                                                     current_block_number,
@@ -276,7 +288,7 @@ class EventListener(object):
 
             self.contract_address_cache = {}
             # Remove older backups
-            self.clean_old_backups(daemon.block_number)
+            self.clean_old_blocks_backup(daemon.block_number)
 
     @transaction.atomic
     def process_block(self, daemon, current_block, current_block_number, last_mined_block_number):

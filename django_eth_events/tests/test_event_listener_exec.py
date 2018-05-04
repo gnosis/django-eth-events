@@ -127,11 +127,15 @@ class TestDaemonExec(TestCase):
             # raising an exception would make the atomic transaction to fail
             atomic_listener.execute()
 
-        # Test transaction atomic worked and no updates were committed
+        # Test transaction atomic worked and updates where committed just for the first block
         self.assertEqual(0, CentralizedOracle().length())
-        self.assertEqual(0, Block.objects.all().count())
-        self.assertEqual(0, Daemon.get_solo().block_number)
+        self.assertEqual(1, Daemon.get_solo().block_number)
         self.assertEqual(2, self.web3.eth.blockNumber)
+
+        # Reset daemon
+        daemon = Daemon.get_solo()
+        daemon.block_number = 0
+        daemon.save()
 
         # Execute the listener correctly, this will save new blocks
         self.listener_under_test.execute()
