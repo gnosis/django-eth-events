@@ -99,9 +99,8 @@ def deadlock_checker(lock_interval=60000):
         if daemon.modified < valid_interval and daemon.listener_lock is True:
             # daemon is deadlocked
             logger.info('Found deadlocked Daemon task, block number %d' % daemon.block_number)
-            with transaction.atomic():
-                daemon.listener_lock = False
-                daemon.save()
-    except Exception as err:
-        logger.error(str(err))
+            daemon.listener_lock = False
+            daemon.save()
+    except Exception:
+        logger.exception("Problem found using deadlock checker")
         send_email(traceback.format_exc())
