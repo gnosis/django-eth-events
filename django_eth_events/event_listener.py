@@ -314,7 +314,7 @@ class EventListener(object):
                                if normalize_address_without_0x(log['address']) in watched_addresses]
 
                 if target_logs:
-                    logger.info('Found %d relevant logs', len(target_logs))
+                    logger.info('Found %d relevant logs in block %d', len(target_logs), current_block_number)
 
                 # Decode logs
                 decoded_logs = self.decoder.decode_logs(target_logs)
@@ -323,7 +323,7 @@ class EventListener(object):
                     # Clear cache, maybe new addresses are stored
                     self.contract_address_cache = {}
 
-                    logger.info('Decoded %d relevant logs', len(decoded_logs))
+                    logger.info('Decoded %d relevant logs in block %d', len(decoded_logs), current_block_number)
 
                     for log in decoded_logs:
                         # Save events
