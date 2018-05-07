@@ -43,9 +43,8 @@ class SingletonListener(object):
 
 @SingletonListener
 class EventListener(object):
-
-    max_blocks_to_backup = int(getattr(settings, 'ETH_BACKUP_BLOCKS', '100'))
-    max_blocks_to_process = int(getattr(settings, 'ETH_PROCESS_BLOCKS', '10000'))
+    max_blocks_to_backup = settings.ETH_BACKUP_BLOCKS
+    max_blocks_to_process = settings.ETH_PROCESS_BLOCKS
 
     def __init__(self, contract_map=None, provider=None):
         self.decoder = Decoder()  # Decodes Ethereum logs

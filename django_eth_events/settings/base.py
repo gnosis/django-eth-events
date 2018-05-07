@@ -1,12 +1,11 @@
 # ------------------------------------------------------------------------------
 # ETHEREUM CONFIGURATION
 # ------------------------------------------------------------------------------
-# If IPC_PATH is set, ETHEREUM_NODE_HOST and ETHEREUM_NODE_PORT are not used
-# ETHEREUM_IPC_PATH = 'path/to/ipc'
-ETHEREUM_NODE_HOST = 'https://mainnet.infura.io'
-ETHEREUM_NODE_PORT = 8545
-ETHEREUM_NODE_SSL = 1
+ETHEREUM_NODE_URL = 'https://mainnet.infura.io:8545'
 ETHEREUM_MAX_WORKERS = 10
+
+ETH_BACKUP_BLOCKS = 100
+ETH_PROCESS_BLOCKS = 10000
 
 # ------------------------------------------------------------------------------
 # CELERY CONFIGURATION

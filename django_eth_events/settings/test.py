@@ -8,9 +8,7 @@ INSTALLED_APPS = (
     'django_eth_events',
 )
 
-ETHEREUM_NODE_HOST = 'localhost'
-ETHEREUM_NODE_PORT = 8545
-ETHEREUM_NODE_SSL = 0
+ETHEREUM_NODE_URL = 'http://localhost:8545'
 ETHEREUM_MAX_WORKERS = 5
 
 RABBIT_HOSTNAME = 'rabbit'

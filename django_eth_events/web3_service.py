@@ -1,10 +1,11 @@
 import concurrent.futures
+from django.core.exceptions import ImproperlyConfigured
 import logging
 import socket
 
 from django.conf import settings
 from requests.exceptions import ConnectionError
-from web3 import HTTPProvider, IPCProvider, Web3
+from web3 import HTTPProvider, IPCProvider, WebsocketProvider, Web3
 from web3.middleware import geth_poa_middleware
 
 from .exceptions import (UnknownBlock, UnknownTransaction,
@@ -21,41 +22,36 @@ class Web3Service(object):
     instance = None
 
     def __new__(cls, provider=None):
+        if not provider:
+            node_url = settings.ETHEREUM_NODE_URL
+            if node_url.startswith('http'):
+                provider = HTTPProvider(endpoint_uri=node_url)
+            elif node_url.startswith('ipc'):
+                path = node_url.replace('ipc://', '')
+                provider = IPCProvider(ipc_path=path)
+            elif node_url.startswith('ws'):
+                provider = WebsocketProvider(endpoint_uri=node_url)
+            else:
+                raise ImproperlyConfigured('Bad value for ETHEREUM_NODE_URL: {}'.format(node_url))
+
         if not Web3Service.instance:
             Web3Service.instance = Web3Service.__Web3Service(provider)
         elif provider and not isinstance(provider,
                                          Web3Service.instance.web3.providers[0].__class__):
-            Web3Service.instance = Web3Service.__Web3Service(provider)
-        elif not provider and not isinstance(Web3Service.instance.web3.providers[0],
-                                             Web3Service.instance.default_provider_class):
             Web3Service.instance = Web3Service.__Web3Service(provider)
         return Web3Service.instance
 
     def __getattr__(self, item):
         return getattr(self.instance, item)
 
+
     class __Web3Service:
-        default_provider_class = HTTPProvider
-        max_workers = int(getattr(settings, 'ETHEREUM_MAX_WORKERS', 10))
-        ethereum_ipc_path = getattr(settings, 'ETHEREUM_IPC_PATH', None)
+        max_workers: int = settings.ETHEREUM_MAX_WORKERS
 
-        def __init__(self, provider=None):
-            if not provider:
-                if self.ethereum_ipc_path:
-                    self.default_provider_class = IPCProvider
-                    provider = self.default_provider_class(
-                        ipc_path=self.ethereum_ipc_path
-                    )
-                else:
-                    protocol = 'https' if settings.ETHEREUM_NODE_SSL else 'http'
-                    endpoint_uri = "{}://{}:{}".format(protocol,
-                                                       settings.ETHEREUM_NODE_HOST,
-                                                       settings.ETHEREUM_NODE_PORT)
-                    provider = self.default_provider_class(endpoint_uri)
-
+        def __init__(self, provider):
             self.web3 = Web3(provider)
 
-            # If not in the mainnet, inject Geth PoA middleware
+            # If not in the mainNet, inject Geth PoA middleware
             # http://web3py.readthedocs.io/en/latest/middleware.html#geth-style-proof-of-authority
             try:
                 if self.web3.net.chainId != 1:

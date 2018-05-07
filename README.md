@@ -27,23 +27,15 @@ INSTALLED_APPS = (
 ```
 
 # Settings
-Provide an Ethereum _host_, _port_ and _SSL (0, 1)_. Use _SSL = 1_ only if your Ethereum host supports HTTPS/SSL.
-Communication with node will use **RPC through HTTP/S**
+Provide an Ethereum _node url_. Provider will be detected depending on the protocol of the url. _http/s_, _ipc_ and
+_ws(websocket)_ providers are available.
+For example, using _https://localhost:8545_ communication with node will use **RPC through HTTPS**
 
 ```
-ETHEREUM_NODE_HOST = os.environ['ETHEREUM_NODE_HOST']
-ETHEREUM_NODE_PORT = os.environ['ETHEREUM_NODE_PORT']
-ETHEREUM_NODE_SSL = bool(int(os.environ['ETHEREUM_NODE_SSL']))
+ETHEREUM_NODE_URL = os.environ['ETHEREUM_NODE_URL']
 ```
 
-You can also provide an **IPC path** to a node running locally, which will be faster.
-You can use the environment variable  _ETHEREUM_IPC_PATH_.
-If set, it will override _ETHEREUM_NODE_HOST_ and _ETHEREUM_NODE_PORT_, so **IPC will
-be used instead of RPC**:
-
-```
-ETHEREUM_IPC_PATH = os.environ['ETHEREUM_IPC_PATH']
-```
+You can also provide an **IPC path** to a node running locally, which will be faster, using _ipc://PATH_TO_IPC_SOCKET_
 
 Number of concurrent threads connected to the ethereum node can be configured:
 
@@ -51,6 +43,7 @@ Number of concurrent threads connected to the ethereum node can be configured:
 ETHEREUM_MAX_WORKERS = os.environ['ETHEREUM_MAX_WORKERS']
 ```
 
+# IPFS
 Provide an IPFS host and port:
 
 ```
@@ -58,6 +51,7 @@ IPFS_HOST = os.environ['IPFS_HOST']
 IPFS_PORT = os.environ['IPFS_PORT']
 ```
 
+##### Events to listen to
 Create a new array variable in your settings file and call it ETH_EVENTS as follows:
 
 ```
