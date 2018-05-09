@@ -8,7 +8,6 @@ eth-utils==1.0.3
 ethereum==2.3.1
 factory-boy==2.10.0
 kombu==4.1.0
-requests=2.18.4
 requests==2.18.4
 rlp==0.6.0
 urllib3==1.22
