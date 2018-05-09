@@ -214,7 +214,7 @@ class EventListener(object):
                 blocks_to_backup.append(
                     Block(
                         block_number=block_number,
-                        block_hash=remove_0x_head(prefetched_block['hash'].hex()),
+                        block_hash=remove_0x_head(prefetched_block['hash']),
                         timestamp=prefetched_block['timestamp'],
                     )
                 )
@@ -332,7 +332,7 @@ class EventListener(object):
                         if instance is not None:
                             if (current_block_number - last_mined_block_number) < self.max_blocks_to_backup:
                                 self.backup(
-                                    remove_0x_head(current_block['hash'].hex()),
+                                    remove_0x_head(current_block['hash']),
                                     current_block['number'],
                                     current_block['timestamp'],
                                     log,

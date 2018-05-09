@@ -3,11 +3,6 @@ from .base import *
 SECRET_KEY = 'testtest'
 DEBUG = True
 
-INSTALLED_APPS = (
-    'solo',
-    'django_eth_events',
-)
-
 ETHEREUM_NODE_URL = 'http://localhost:8545'
 ETHEREUM_MAX_WORKERS = 5
 

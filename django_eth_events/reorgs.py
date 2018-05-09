@@ -25,7 +25,7 @@ def check_reorg(daemon_block_number, current_block_number=None, provider=None):
             # check if there was reorg
             for block in blocks:
                 try:
-                    node_block_hash = remove_0x_head(web3_service.get_block(block.block_number)['hash'].hex())
+                    node_block_hash = remove_0x_head(web3_service.get_block(block.block_number)['hash'])
                 except:
                     raise UnknownBlockReorgException
                 if block.block_hash == node_block_hash:
@@ -54,7 +54,7 @@ def check_reorg(daemon_block_number, current_block_number=None, provider=None):
             # check if there was reorg
             for block in blocks:
                 try:
-                    node_block_hash = remove_0x_head(web3_service.get_block(block.block_number)['hash'].hex())
+                    node_block_hash = remove_0x_head(web3_service.get_block(block.block_number)['hash'])
                 except:
                     raise UnknownBlockReorgException
                 if block.block_hash == node_block_hash:

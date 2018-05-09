@@ -74,7 +74,7 @@ class Decoder(Singleton):
         :param log: ethereum log
         :return: dictionary of decoded parameters, decoding method reference
         """
-        method_id = remove_0x_head(log['topics'][0].hex())
+        method_id = remove_0x_head(log['topics'][0])
 
         if method_id not in self.methods:
             raise LookupError("Unknown log topic.")

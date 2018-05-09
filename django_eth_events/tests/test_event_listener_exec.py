@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from json import loads, dumps
+from json import dumps, loads
 
 from django.test import TestCase
 from eth_tester import EthereumTester
@@ -97,7 +97,7 @@ class TestDaemonExec(TestCase):
 
         # Force block_hash change (cannot recreate a real reorg with python testrpc)
         # TODO Check if it can be done with eth-tester
-        block_hash = remove_0x_head(self.web3.eth.getBlock(1)['hash'].hex())
+        block_hash = remove_0x_head(self.web3.eth.getBlock(1)['hash'])
         Block.objects.filter(block_number=1).update(block_hash=block_hash)
 
         self.listener_under_test.execute()
@@ -165,7 +165,7 @@ class TestDaemonExec(TestCase):
         self.assertEqual(2, Block.objects.all().count())
         self.assertEqual(4, self.web3.eth.blockNumber)
 
-        block_hash1 = remove_0x_head(self.web3.eth.getBlock(1)['hash'].hex())
+        block_hash1 = remove_0x_head(self.web3.eth.getBlock(1)['hash'])
         Block.objects.filter(block_number=1).update(block_hash=block_hash1)
 
         with self.assertRaises(Exception):

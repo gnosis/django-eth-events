@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from web3 import IPCProvider, HTTPProvider, WebsocketProvider
 from django.test import TestCase
 from eth_tester import EthereumTester
+from web3 import HTTPProvider, IPCProvider, WebsocketProvider
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..exceptions import UnknownBlock

@@ -66,17 +66,17 @@ class TestReorgDetector(TestCase):
         self.assertEqual(self.web3_service.get_current_block_number(), 9)
 
     def test_mocked_block_hash(self):
-        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000').hex())
+        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000'))
         cache.set('0x0', block_hash_0)
         self.assertEqual(self.web3_service.get_block(0)['hash'], HexBytes(block_hash_0))
-        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111').hex())
+        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111'))
         cache.set('0x1', block_hash_1)
         self.assertEqual(self.web3_service.get_block(1)['hash'], HexBytes(block_hash_1))
         self.assertNotEqual(block_hash_0, block_hash_1)
 
     def test_reorg_ok(self):
         # Last block hash haven't changed
-        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000').hex())
+        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000'))
         cache.set('0x0', block_hash_0)
         cache.set('block_number', '0x1')
         Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
@@ -84,7 +84,7 @@ class TestReorgDetector(TestCase):
         (had_reorg, _) = check_reorg(Daemon.get_solo().block_number)
         self.assertFalse(had_reorg)
 
-        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111').hex())
+        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111'))
         cache.set('0x1', block_hash_1)
         cache.set('block_number', '0x2')
         Block.objects.create(block_hash=block_hash_1, block_number=1, timestamp=0)
@@ -94,7 +94,7 @@ class TestReorgDetector(TestCase):
 
     def test_reorg_happened(self):
         # Last block hash haven't changed
-        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000').hex())
+        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000'))
         cache.set('0x0', block_hash_0)
         cache.set('block_number', '0x1')
         Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
@@ -103,7 +103,7 @@ class TestReorgDetector(TestCase):
         self.assertFalse(had_reorg)
 
         # Last block hash changed
-        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111').hex())
+        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111'))
         cache.set('0x1', block_hash_1)
         cache.set('block_number', '0x2')
         block_hash_reorg = '{:040d}'.format(1313)
@@ -118,12 +118,12 @@ class TestReorgDetector(TestCase):
         self.assertFalse(had_reorg)
 
     def test_reorg_exception(self):
-        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000').hex())
+        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000'))
         cache.set('0x0', block_hash_0)
         cache.set('block_number', '0x1')
 
         # Last block hash changed
-        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111').hex())
+        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111'))
         cache.set('0x1', block_hash_1)
         cache.set('block_number', '0x2')
         block_hash_reorg = '{:040d}'.format(1313)
@@ -139,7 +139,7 @@ class TestReorgDetector(TestCase):
 
     def test_reorg_mined_multiple_blocks_ok(self):
         # Last block hash haven't changed
-        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000').hex())
+        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000'))
         cache.set('0x0', block_hash_0)
         cache.set('block_number', '0x1')
         Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
@@ -148,7 +148,7 @@ class TestReorgDetector(TestCase):
         self.assertFalse(had_reorg)
 
         # new block number changed more than one unit
-        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111').hex())
+        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111'))
         cache.set('0x1', block_hash_1)  # set_mocked_testrpc_block_hash
         cache.set('block_number', '0x9')
         Block.objects.create(block_hash=block_hash_1, block_number=1, timestamp=0)
@@ -158,7 +158,7 @@ class TestReorgDetector(TestCase):
 
     def test_mined_multiple_blocks_with_reorg(self):
         # Last block hash haven't changed
-        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000').hex())
+        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000'))
         cache.set('0x0', block_hash_0)
         cache.set('block_number', '0x1')
         Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
@@ -167,7 +167,7 @@ class TestReorgDetector(TestCase):
         self.assertFalse(had_reorg)
 
         # Last block hash changed
-        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111').hex())
+        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111'))
         cache.set('0x1', block_hash_1)
         cache.set('block_number', '0x9')
         block_hash_reorg = '{:040d}'.format(1313)
@@ -177,7 +177,7 @@ class TestReorgDetector(TestCase):
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 0)
 
-        block_hash_2 = remove_0x_head(HexBytes('0x222222222222222222222222').hex())
+        block_hash_2 = remove_0x_head(HexBytes('0x222222222222222222222222'))
         cache.set('0x2', block_hash_reorg)
         cache.set('block_number', '0x9')
         Block.objects.create(block_hash=block_hash_2, block_number=2, timestamp=0)
@@ -200,7 +200,7 @@ class TestReorgDetector(TestCase):
     def test_reorg_block_number_decreased(self):
         # block number of the node is lower than the one saved, we trust the node, we rollback to the common block
         # Last block hash haven't changed
-        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000').hex())
+        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000'))
         cache.set('0x0', block_hash_0)
         cache.set('block_number', '0x1')
         Block.objects.create(block_hash='wrong block', block_number=0, timestamp=0)
@@ -210,7 +210,7 @@ class TestReorgDetector(TestCase):
 
         Block.objects.filter(block_number=0).update(block_hash=block_hash_0)
 
-        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111').hex())
+        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111'))
         cache.set('0x1', block_hash_1)
         cache.set('block_number', '0x2')
         Block.objects.create(block_hash=block_hash_1, block_number=1, timestamp=0)
@@ -218,7 +218,7 @@ class TestReorgDetector(TestCase):
         self.assertTrue(had_reorg)
         self.assertEqual(block_number, 1)
 
-        block_hash_reorg = remove_0x_head(HexBytes('0x131313131313131313131313').hex())
+        block_hash_reorg = remove_0x_head(HexBytes('0x131313131313131313131313'))
         cache.set('0x1', block_hash_reorg)
 
         (had_reorg, block_number) = check_reorg(Daemon.get_solo().block_number)
@@ -243,8 +243,8 @@ class TestReorgDetector(TestCase):
         sleep(1)
 
         # Simulate reorg
-        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000').hex())
-        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111').hex())
+        block_hash_0 = remove_0x_head(HexBytes('0x000000000000000000000000'))
+        block_hash_1 = remove_0x_head(HexBytes('0x111111111111111111111111'))
 
         Block.objects.create(block_hash=block_hash_0, block_number=0, timestamp=0)
         Daemon.objects.all().update(block_number=0)
@@ -252,7 +252,7 @@ class TestReorgDetector(TestCase):
         cache.set('0x0', block_hash_0)
         cache.set('0x1', block_hash_1)
         cache.set('block_number', '0x2')
-        block_hash_reorg = remove_0x_head(HexBytes('0x131313131313131313131313').hex())
+        block_hash_reorg = remove_0x_head(HexBytes('0x131313131313131313131313'))
         Block.objects.create(block_hash=block_hash_reorg, block_number=1, timestamp=0)
         Daemon.objects.all().update(block_number=1)
 

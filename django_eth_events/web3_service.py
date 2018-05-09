@@ -1,11 +1,13 @@
 import concurrent.futures
-from django.core.exceptions import ImproperlyConfigured
 import logging
 import socket
+from typing import Dict
 
+import requests
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from requests.exceptions import ConnectionError
-from web3 import HTTPProvider, IPCProvider, WebsocketProvider, Web3
+from web3 import HTTPProvider, IPCProvider, Web3, WebsocketProvider
 from web3.middleware import geth_poa_middleware
 
 from .exceptions import (UnknownBlock, UnknownTransaction,
@@ -44,11 +46,11 @@ class Web3Service(object):
     def __getattr__(self, item):
         return getattr(self.instance, item)
 
-
     class __Web3Service:
         max_workers: int = settings.ETHEREUM_MAX_WORKERS
 
         def __init__(self, provider):
+            self.provider = provider
             self.web3 = Web3(provider)
 
             # If not in the mainNet, inject Geth PoA middleware
@@ -113,6 +115,34 @@ class Web3Service(object):
             except Exception as e:
                 raise UnknownTransaction from e
 
+        def get_transaction_receipts(self, tx_hashes):
+
+            tx_with_receipt = {}
+
+            if isinstance(self.provider, HTTPProvider):
+                # Query limit for RPC is 131072, do batches of 500 tx
+                for tx_hashes_chunk in self._chunks(tx_hashes, 500):
+                    rpc_request = [self._build_tx_receipt_request(tx_hash) for tx_hash in tx_hashes_chunk]
+                    for rpc_response in self._do_request(rpc_request):
+                        tx = rpc_response['result']
+                        if not tx:
+                            raise UnknownTransaction
+                        tx_hash = tx['transactionHash']
+                        tx_with_receipt[tx_hash] = tx
+            else:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                    future_receipts_with_tx = {executor.submit(self.get_transaction_receipt, tx): tx
+                                               for tx in tx_hashes}
+
+                    for future in concurrent.futures.as_completed(future_receipts_with_tx):
+                        tx = future_receipts_with_tx[future]
+                        receipt = future.result()
+                        if not receipt:
+                            raise UnknownTransaction
+                        tx_with_receipt[tx] = receipt
+
+            return tx_with_receipt
+
         def get_block(self, block_identifier, full_transactions=False):
             """
             :param block_identifier:
@@ -139,17 +169,35 @@ class Web3Service(object):
             :raises UnknownBlock
             :return:
             """
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                # Get blocks from ethereum node and mark each future with its block_id
-                future_to_block_id = {executor.submit(self.get_block, block_id, full_transactions): block_id
-                                      for block_id in block_identifiers}
-                blocks = {}
-                for future in concurrent.futures.as_completed(future_to_block_id):
-                    block_id = future_to_block_id[future]
-                    block = future.result()
-                    blocks[block_id] = block
 
-                return blocks
+            blocks = {}
+
+            if isinstance(self.provider, HTTPProvider):
+                # Query limit for RPC is 131072, do batches of 500 blocks
+                for block_numbers_chunk in self._chunks(block_identifiers, 500):
+                    rpc_request = [self._build_block_request(block_number) for block_number in block_numbers_chunk]
+                    for rpc_response in self._do_request(rpc_request):
+                        block = rpc_response['result']
+                        if not block:
+                            raise UnknownBlock
+
+                        block_number = int(block['number'], 16)
+                        block['number'] = block_number
+                        block['timestamp'] = int(block['timestamp'], 16)
+                        blocks[block_number] = block
+            else:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                    # Get blocks from ethereum node and mark each future with its block_id
+                    future_to_block_id = {executor.submit(self.get_block, block_id, full_transactions): block_id
+                                          for block_id in block_identifiers}
+                    for future in concurrent.futures.as_completed(future_to_block_id):
+                        block_id = future_to_block_id[future]
+                        block = future.result()
+                        if not block:
+                            raise UnknownBlock
+                        blocks[block_id] = block
+
+            return blocks
 
         def get_current_block(self, full_transactions=False):
             """
@@ -168,18 +216,37 @@ class Web3Service(object):
             """
 
             logs = []
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                future_receipts_with_tx = {executor.submit(self.get_transaction_receipt, tx): tx
-                                           for tx in block['transactions']}
+            tx_with_receipt = self.get_transaction_receipts(block['transactions'])
 
-                tx_with_receipt = {}
-                for future in concurrent.futures.as_completed(future_receipts_with_tx):
-                    tx = future_receipts_with_tx[future]
-                    receipt = future.result()
-                    tx_with_receipt[tx] = receipt
-
-                for tx in block['transactions']:
-                    receipt = tx_with_receipt[tx]
-                    logs.extend(receipt.get('logs', []))
+            for tx in block['transactions']:
+                receipt = tx_with_receipt[tx]
+                logs.extend(receipt.get('logs', []))
 
             return logs
+
+        def _do_request(self, rpc_request):
+            if isinstance(self.provider, HTTPProvider):
+                return requests.post(self.provider.endpoint_uri, json=rpc_request).json()
+            # elif isinstance(self.provider, IPCProvider):
+            # elif isinstance(self.provider, WebsocketProvider):
+            # elif isinstance(self.provider, EthereumTesterProvider):
+            else:
+                raise ImproperlyConfigured('Not valid provider')
+
+        def _build_block_request(self, block_number: int, full_transactions: bool=False) -> Dict[str, any]:
+            block_number_hex = '0x{:x}'.format(block_number)
+            return {"jsonrpc": "2.0",
+                    "method": "eth_getBlockByNumber",
+                    "params": [block_number_hex, full_transactions],
+                    "id": 1
+                    }
+
+        def _build_tx_receipt_request(self, tx_hash: str) -> Dict[str, any]:
+            return {"jsonrpc": "2.0",
+                    "method": "eth_getTransactionReceipt",
+                    "params": [tx_hash],
+                    "id": 1}
+
+        def _chunks(self, iterable, size):
+            for i in range(0, len(iterable), size):
+                yield iterable[i:i + size]
