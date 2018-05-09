@@ -289,6 +289,8 @@ class EventListener(object):
             # Remove older backups
             self.clean_old_blocks_backup(daemon.block_number)
 
+        logger.info('Ended processing of chunk, daemon-block-number=%d', daemon.block_number)
+
     @transaction.atomic
     def process_block(self, daemon, current_block, current_block_number, last_mined_block_number):
         logger.debug('Getting every log for block %d', current_block['number'])
