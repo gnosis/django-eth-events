@@ -48,6 +48,7 @@ class Web3Service(object):
 
     class __Web3Service:
         max_workers: int = settings.ETHEREUM_MAX_WORKERS
+        max_batch_requests: int = settings.ETHEREUM_MAX_BATCH_REQUESTS
 
         def __init__(self, provider):
             self.provider = provider
@@ -120,8 +121,8 @@ class Web3Service(object):
             tx_with_receipt = {}
 
             if isinstance(self.provider, HTTPProvider):
-                # Query limit for RPC is 131072, do batches of 500 tx
-                for tx_hashes_chunk in self._chunks(tx_hashes, 500):
+                # Query limit for RPC is 131072
+                for tx_hashes_chunk in self._chunks(tx_hashes, self.max_batch_requests):
                     rpc_request = [self._build_tx_receipt_request(tx_hash) for tx_hash in tx_hashes_chunk]
                     for rpc_response in self._do_request(rpc_request):
                         tx = rpc_response['result']
@@ -173,8 +174,8 @@ class Web3Service(object):
             blocks = {}
 
             if isinstance(self.provider, HTTPProvider):
-                # Query limit for RPC is 131072, do batches of 500 blocks
-                for block_numbers_chunk in self._chunks(block_identifiers, 500):
+                # Query limit for RPC is 131072
+                for block_numbers_chunk in self._chunks(block_identifiers, self.max_batch_requests):
                     rpc_request = [self._build_block_request(block_number) for block_number in block_numbers_chunk]
                     for rpc_response in self._do_request(rpc_request):
                         block = rpc_response['result']

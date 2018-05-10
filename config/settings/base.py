@@ -8,6 +8,7 @@ INSTALLED_APPS = (
 # ------------------------------------------------------------------------------
 ETHEREUM_NODE_URL = 'https://mainnet.infura.io:8545'
 ETHEREUM_MAX_WORKERS = 10
+ETHEREUM_MAX_BATCH_REQUESTS = 500
 
 ETH_BACKUP_BLOCKS = 100
 ETH_PROCESS_BLOCKS = 10000

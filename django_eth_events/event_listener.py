@@ -57,8 +57,6 @@ class EventListener(object):
 
         self.original_contract_map = contract_map
         self.contract_map = self.parse_contract_map(contract_map) if contract_map else contract_map
-        # When we have address getters caching can save us a lot of time
-        self.contract_address_cache = {}
 
     @property
     def provider(self):
@@ -242,6 +240,10 @@ class EventListener(object):
         """
         :raises: Web3ConnectionException
         """
+
+        # When we have address getters caching can save us a lot of time
+        contract_address_cache = {}
+
         daemon = Daemon.get_solo()
         if not daemon.is_executing():
             return
@@ -270,32 +272,33 @@ class EventListener(object):
 
             last_mined_block_number = next_mined_block_numbers[-1]
             prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
-            logger.debug('Finished block prefetching')
+            logger.debug('Finished blocks prefetching')
 
             self.backup_blocks(prefetched_blocks, last_mined_block_number)
-            logger.debug('Finished block backup')
+            logger.debug('Finished blocks backup')
 
             # Prepare decoder for contracts
             for contract in self.contract_map:
-                # Add ABI
                 self.decoder.add_abi(contract['EVENT_ABI'])
 
             for current_block_number in next_mined_block_numbers:
-                # first get un-decoded logs and the block info
-                current_block = prefetched_blocks[current_block_number]
-                self.process_block(daemon, current_block, current_block_number, last_mined_block_number)
+                self.process_block(daemon,
+                                   prefetched_blocks[current_block_number],
+                                   current_block_number,
+                                   last_mined_block_number,
+                                   contract_address_cache)
 
-            self.contract_address_cache = {}
             # Remove older backups
             self.clean_old_blocks_backup(daemon.block_number)
 
         logger.info('Ended processing of chunk, daemon-block-number=%d', daemon.block_number)
 
     @transaction.atomic
-    def process_block(self, daemon, current_block, current_block_number, last_mined_block_number):
-        logger.debug('Getting every log for block %d', current_block['number'])
+    def process_block(self, daemon, current_block, current_block_number, last_mined_block_number,
+                      contract_address_cache):
+        logger.debug('Getting every log for block_number=%d', current_block['number'])
         logs = self.web3_service.get_logs(current_block)
-        logger.debug('Got %d logs in block %d', len(logs), current_block['number'])
+        logger.debug('Got %d logs in block_number=%d', len(logs), current_block['number'])
 
         ###########################
         # Decode logs #
@@ -304,11 +307,11 @@ class EventListener(object):
             for contract in self.contract_map:
 
                 # Get watched contract addresses
-                if contract['NAME'] in self.contract_address_cache:
-                    watched_addresses = self.contract_address_cache[contract['NAME']]
+                if contract['NAME'] in contract_address_cache:
+                    watched_addresses = contract_address_cache[contract['NAME']]
                 else:
                     watched_addresses = self.get_watched_contract_addresses(contract)
-                    self.contract_address_cache[contract['NAME']] = watched_addresses
+                    contract_address_cache[contract['NAME']] = watched_addresses
 
                 # Filter logs by relevant addresses
                 target_logs = [log for log in logs
@@ -322,7 +325,7 @@ class EventListener(object):
 
                 if decoded_logs:
                     # Clear cache, maybe new addresses are stored
-                    self.contract_address_cache = {}
+                    contract_address_cache.clear()
 
                     logger.info('Decoded %d relevant logs in block %d', len(decoded_logs), current_block_number)
 
@@ -346,3 +349,4 @@ class EventListener(object):
         daemon.block_number = current_block_number
         # Make changes persistent, update block_number
         daemon.save()
+        logger.debug('Ended processing of block_number=%d', current_block['number'])
