@@ -225,6 +225,25 @@ class Web3Service(object):
 
             return logs
 
+        def get_logs_for_blocks(self, blocks):
+            """
+            Recover logs for every block
+            :param blocks: web3 blocks to get logs from
+            :return: a dictionary, the key is the block number and value is list of
+            """
+
+            block_number_with_logs = {}
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                # Get blocks from ethereum node and mark each future with its block_id
+                future_logs_to_block = {executor.submit(self.get_logs, block): block for block in blocks}
+                for future in concurrent.futures.as_completed(future_logs_to_block):
+                    block = future_logs_to_block[future]
+                    logs = future.result()
+                    block_number_with_logs[block['number']] = logs
+
+            return block_number_with_logs
+
         def _do_request(self, rpc_request):
             if isinstance(self.provider, HTTPProvider):
                 return requests.post(self.provider.endpoint_uri, json=rpc_request).json()

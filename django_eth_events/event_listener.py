@@ -274,6 +274,10 @@ class EventListener(object):
             prefetched_blocks = self.web3_service.get_blocks(next_mined_block_numbers)
             logger.debug('Finished blocks prefetching')
 
+            logger.info('Start log prefetching')
+            prefetched_logs = self.web3_service.get_logs_for_blocks(prefetched_blocks.values())
+            logger.info('End log prefetching')
+
             self.backup_blocks(prefetched_blocks, last_mined_block_number)
             logger.debug('Finished blocks backup')
 
@@ -284,6 +288,7 @@ class EventListener(object):
             for current_block_number in next_mined_block_numbers:
                 self.process_block(daemon,
                                    prefetched_blocks[current_block_number],
+                                   prefetched_logs[current_block_number],
                                    current_block_number,
                                    last_mined_block_number,
                                    contract_address_cache)
@@ -294,10 +299,10 @@ class EventListener(object):
         logger.info('Ended processing of chunk, daemon-block-number=%d', daemon.block_number)
 
     @transaction.atomic
-    def process_block(self, daemon, current_block, current_block_number, last_mined_block_number,
+    def process_block(self, daemon, current_block, logs, current_block_number, last_mined_block_number,
                       contract_address_cache):
-        logger.debug('Getting every log for block_number=%d', current_block['number'])
-        logs = self.web3_service.get_logs(current_block)
+        # logger.debug('Getting every log for block_number=%d', current_block['number'])
+        # logs = self.web3_service.get_logs(current_block)
         logger.debug('Got %d logs in block_number=%d', len(logs), current_block['number'])
 
         ###########################
