@@ -262,7 +262,9 @@ class EventListener(object):
         next_mined_block_numbers = self.get_next_mined_block_numbers(daemon_block_number=daemon.block_number,
                                                                      current_block_number=current_block_number)
         if not next_mined_block_numbers:
-            logger.debug('No blocks mined')
+            logger.info('No blocks mined, daemon-block-number=%d, node-block-number=%d',
+                        daemon.block_number,
+                        current_block_number)
         else:
             logger.info('Blocks mined from %d to %d, prefetching %d blocks, daemon-block-number=%d',
                         next_mined_block_numbers[0],
@@ -296,7 +298,7 @@ class EventListener(object):
             # Remove older backups
             self.clean_old_blocks_backup(daemon.block_number)
 
-        logger.info('Ended processing of chunk, daemon-block-number=%d', daemon.block_number)
+            logger.info('Ended processing of chunk, daemon-block-number=%d', daemon.block_number)
 
     @transaction.atomic
     def process_block(self, daemon, current_block, logs, current_block_number, last_mined_block_number,
