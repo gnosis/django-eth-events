@@ -53,6 +53,7 @@ class Web3Service(object):
         def __init__(self, provider):
             self.provider = provider
             self.web3 = Web3(provider)
+            self.http_session = requests.session()
 
             # If not in the mainNet, inject Geth PoA middleware
             # http://web3py.readthedocs.io/en/latest/middleware.html#geth-style-proof-of-authority
@@ -246,7 +247,7 @@ class Web3Service(object):
 
         def _do_request(self, rpc_request):
             if isinstance(self.provider, HTTPProvider):
-                return requests.post(self.provider.endpoint_uri, json=rpc_request).json()
+                return self.http_session.post(self.provider.endpoint_uri, json=rpc_request).json()
             # elif isinstance(self.provider, IPCProvider):
             # elif isinstance(self.provider, WebsocketProvider):
             # elif isinstance(self.provider, EthereumTesterProvider):

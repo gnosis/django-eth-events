@@ -25,6 +25,7 @@ requirements = [
     "eth-utils>=1.0.0",
     "ethereum>=2",
     "kombu>=4.1.0",
+    "requests>=2.0.0",
     "web3>=4",
 ]
 
