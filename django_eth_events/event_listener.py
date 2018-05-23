@@ -47,7 +47,6 @@ class EventListener(object):
     max_blocks_to_process = settings.ETH_PROCESS_BLOCKS
 
     def __init__(self, contract_map=None, provider=None):
-        self.decoder = Decoder()  # Decodes Ethereum logs
         self.web3_service = Web3Service(provider=provider)
         self.web3 = self.web3_service.web3  # Gets transaction and block info from ethereum
 
@@ -57,6 +56,13 @@ class EventListener(object):
 
         self.original_contract_map = contract_map
         self.contract_map = self.parse_contract_map(contract_map) if contract_map else contract_map
+
+        # Decodes Ethereum logs
+        self.decoder = Decoder()
+
+        # Prepare decoder for contracts
+        for contract in self.contract_map:
+            self.decoder.add_abi(contract['EVENT_ABI'])
 
     @property
     def provider(self):
@@ -282,10 +288,6 @@ class EventListener(object):
 
             self.backup_blocks(prefetched_blocks, last_mined_block_number)
             logger.debug('Finished blocks backup')
-
-            # Prepare decoder for contracts
-            for contract in self.contract_map:
-                self.decoder.add_abi(contract['EVENT_ABI'])
 
             for current_block_number in next_mined_block_numbers:
                 self.process_block(daemon,
