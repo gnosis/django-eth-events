@@ -1,4 +1,6 @@
+from ethereum.utils import checksum_encode
 from json import dumps, loads
+from typing import Set
 
 from celery.utils.log import get_task_logger
 from django.conf import settings
@@ -9,8 +11,7 @@ from .decoder import Decoder
 from .exceptions import InvalidAddressException
 from .models import Block, Daemon
 from .reorgs import check_reorg
-from .utils import (JsonBytesEncoder, normalize_address_without_0x,
-                    remove_0x_head)
+from .utils import (JsonBytesEncoder, normalize_address_without_0x, remove_0x_head)
 from .web3_service import Web3Service
 
 logger = get_task_logger(__name__)
@@ -45,6 +46,7 @@ class SingletonListener(object):
 class EventListener(object):
     max_blocks_to_backup = settings.ETH_BACKUP_BLOCKS
     max_blocks_to_process = settings.ETH_PROCESS_BLOCKS
+    blocks_to_process_with_filters = settings.ETH_FILTER_MAX_BLOCKS
 
     def __init__(self, contract_map=None, provider=None):
         self.web3_service = Web3Service(provider=provider)
@@ -132,7 +134,7 @@ class EventListener(object):
         else:
             return range(0)
 
-    def get_watched_contract_addresses(self, contract):
+    def get_watched_contract_addresses(self, contract) -> Set[str]:
         addresses = None
         try:
             if contract.get('ADDRESSES'):
@@ -142,7 +144,7 @@ class EventListener(object):
         except Exception as e:
             raise LookupError("Could not retrieve watched addresses for contract {}".format(contract['NAME'])) from e
 
-        normalized_addresses = {normalize_address_without_0x(address) for address in addresses}
+        normalized_addresses = {checksum_encode(address) for address in addresses}
         return normalized_addresses
 
     @transaction.atomic
@@ -229,7 +231,7 @@ class EventListener(object):
     def clean_useless_blocks_backup(self, daemon_block_number):
         """
         If there's an error during block processing, some blocks will be stored and will be detected
-        as a reorg, so this method will clean blocks stored bigger block number than daemon block number
+        as a reorg, so this method will clean blocks stored with bigger block number than daemon block number
         :param daemon_block_number:
         :return:
         """
@@ -241,6 +243,118 @@ class EventListener(object):
         return Block.objects.filter(
             block_number__lt=daemon_block_number - self.max_blocks_to_backup
         ).delete()
+
+    @transaction.atomic
+    def execute_with_filters(self, daemon: Daemon, end_block: int):
+        start_block = daemon.block_number
+
+        logger.info('Sync with filters, start-block=%d - end-block=%d', start_block, end_block)
+
+        # Store addresses with retrieved logs
+        block_number_with_logs = {}
+
+        # Cache for contracts that need access to database
+        contract_address_cache = {}
+
+        # Every contract address. They will be used to know which blocks have to be retrieved for sure
+        contract_addresses = set()
+        block_numbers_to_be_prefetched = set()
+        for contract in self.contract_map:
+            contract_addresses.update(self.get_watched_contract_addresses(contract))
+
+        # Load logs for every event
+        events = self.decoder.events
+        for event in events:
+            logger.info('Using filter to get logs for event=%s from block=%d to block=%d',
+                        event,
+                        start_block,
+                        end_block)
+            logs = self.web3_service.get_logs_for_event_using_filter(start_block, end_block, event)
+            logger.info('Found %d logs for event=%s', len(logs), event)
+            for log in logs:
+                block_number = log['blockNumber']
+                block_number_with_logs.setdefault(block_number, []).append(log)
+                if log['address'] in contract_addresses:
+                    block_numbers_to_be_prefetched.add(block_number)
+
+        logger.info('Start prefetching of %d blocks', len(block_numbers_to_be_prefetched))
+        prefetched_blocks = self.web3_service.get_blocks(list(block_numbers_to_be_prefetched))
+        logger.info('End block prefetching')
+
+        # Start in the first block with logs.
+        # For example, if we start in block 5 but no logs are found until 200, we start in the 200
+        new_start_block = max(min(block_number_with_logs), start_block) if block_number_with_logs else end_block
+        if new_start_block != start_block:
+            logger.info('No logs found from block=%d to block=%d, so starting in block=%d',
+                        start_block, new_start_block, new_start_block)
+
+        for block_number in range(new_start_block, end_block):
+            logger.debug('Processing block %d', block_number)
+            logs = block_number_with_logs.get(block_number)
+            if not logs:
+                continue
+
+            # Don't load block if not needed, can be `None` if not prefetched
+            current_block = prefetched_blocks.get(block_number)
+
+            ###########################
+            # Decode logs #
+            ###########################
+            for contract in self.contract_map:
+                # Query cache before retrieving contract addresses from database
+                if contract['NAME'] not in contract_address_cache:
+                    contract_address_cache[contract['NAME']] = self.get_watched_contract_addresses(contract)
+                watched_addresses = contract_address_cache[contract['NAME']]
+
+                # Filter logs by relevant addresses
+                target_logs = [log for log in logs if log['address'] in watched_addresses]
+
+                if target_logs:
+                    logger.info('Contract=%s Block=%d -> Found %d relevant logs',
+                                contract['NAME'],
+                                block_number,
+                                len(target_logs))
+
+                decoded_logs = self.decoder.decode_logs(target_logs)
+
+                if decoded_logs:
+                    logger.info('Contract=%s Block=%d -> Decoded %d relevant logs',
+                                contract['NAME'],
+                                block_number,
+                                len(decoded_logs))
+
+                    # Save events
+                    for decoded_log in decoded_logs:
+                        # Fetch block if not recovered yet
+                        if not current_block:
+                            current_block = self.web3_service.get_block(block_number)
+
+                        instance = self.save_event(contract, decoded_log, current_block)
+
+                        # Only valid data is saved in backup
+                        if instance is not None:
+                            # Clear cache, maybe new addresses are stored
+                            contract_address_cache.clear()
+
+                            if (end_block - block_number) < self.max_blocks_to_backup:
+                                self.backup(
+                                    remove_0x_head(current_block['hash']),
+                                    current_block['number'],
+                                    current_block['timestamp'],
+                                    decoded_log,
+                                    contract['EVENT_DATA_RECEIVER']
+                                )
+
+                    logger.info('Contract=%s Block=%d -> Processed %d relevant logs',
+                                contract['NAME'],
+                                block_number,
+                                len(decoded_logs))
+
+            daemon.block_number = block_number
+            logger.debug('Ended processing of block_number=%d', block_number)
+
+        daemon.block_number = end_block
+        daemon.save()
 
     def execute(self):
         """
@@ -256,10 +370,17 @@ class EventListener(object):
 
         self.clean_useless_blocks_backup(daemon.block_number)
         current_block_number = self.web3_service.get_current_block_number()
+
+        # Use filters for first sync
+        if (current_block_number - daemon.block_number) > self.max_blocks_to_backup:
+            return self.execute_with_filters(daemon,
+                                             min(daemon.block_number + self.blocks_to_process_with_filters,
+                                                 current_block_number - self.max_blocks_to_backup)
+                                             )
+
         had_reorg, reorg_block_number = check_reorg(daemon.block_number,
                                                     current_block_number,
                                                     provider=self.provider)
-
         if had_reorg:
             # Daemon block_number could be modified
             self.rollback(daemon, reorg_block_number)
@@ -316,15 +437,12 @@ class EventListener(object):
             for contract in self.contract_map:
 
                 # Get watched contract addresses
-                if contract['NAME'] in contract_address_cache:
-                    watched_addresses = contract_address_cache[contract['NAME']]
-                else:
-                    watched_addresses = self.get_watched_contract_addresses(contract)
-                    contract_address_cache[contract['NAME']] = watched_addresses
+                if contract['NAME'] not in contract_address_cache:
+                    contract_address_cache[contract['NAME']] = self.get_watched_contract_addresses(contract)
+                watched_addresses = contract_address_cache[contract['NAME']]
 
                 # Filter logs by relevant addresses
-                target_logs = [log for log in logs
-                               if normalize_address_without_0x(log['address']) in watched_addresses]
+                target_logs = [log for log in logs if log['address'] in watched_addresses]
 
                 if target_logs:
                     logger.info('Found %d relevant logs in block %d', len(target_logs), current_block_number)

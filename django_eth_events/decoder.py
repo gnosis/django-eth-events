@@ -4,6 +4,8 @@ from logging import getLogger
 from eth_abi import decode_abi
 from ethereum.utils import sha3
 
+from hexbytes import HexBytes
+
 from .singleton import Singleton
 from .utils import normalize_address_without_0x, remove_0x_head
 
@@ -16,12 +18,15 @@ class Decoder(Singleton):
     Contract's ABIs
     """
 
-    methods = {}
-    added_abis = {}
-
-    def reset(self):
+    def __init__(self):
         self.methods = {}
         self.added_abis = {}
+        self.events = set()
+
+    def reset(self):
+        self.methods.clear()
+        self.added_abis.clear()
+        self.events.clear()
 
     @staticmethod
     def get_method_id(item):
@@ -51,6 +56,8 @@ class Decoder(Singleton):
                     method_id = self.get_method_id(item)
                     self.methods[method_id] = item
                     added += 1
+                if item.get('type') == 'event':
+                    self.events.add(HexBytes(method_id).hex())
             self.added_abis[abi_sha3] = None
         return added
 

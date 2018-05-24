@@ -1,7 +1,7 @@
 import concurrent.futures
 import logging
 import socket
-from typing import Dict
+from typing import Dict, List
 
 import requests
 from django.conf import settings
@@ -24,23 +24,37 @@ class Web3Service(object):
     instance = None
 
     def __new__(cls, provider=None):
+        """
+        :param provider: HTTP/S provider for web3. WS/IPC is no longer supported
+        :return: Instance of Web3Service
+        """
+        slow_provider_timeout = 400
         if not provider:
             node_url = settings.ETHEREUM_NODE_URL
             if node_url.startswith('http'):
                 provider = HTTPProvider(endpoint_uri=node_url)
+                slow_provider = HTTPProvider(endpoint_uri=node_url, request_kwargs={'timeout': slow_provider_timeout})
             elif node_url.startswith('ipc'):
                 path = node_url.replace('ipc://', '')
                 provider = IPCProvider(ipc_path=path)
+                slow_provider = IPCProvider(ipc_path=path, timeout=slow_provider_timeout)
             elif node_url.startswith('ws'):
                 provider = WebsocketProvider(endpoint_uri=node_url)
+                slow_provider = provider
             else:
                 raise ImproperlyConfigured('Bad value for ETHEREUM_NODE_URL: {}'.format(node_url))
+        else:
+            if isinstance(provider, HTTPProvider):
+                slow_provider = HTTPProvider(endpoint_uri=provider.endpoint_uri,
+                                             request_kwargs={'timeout': slow_provider_timeout})
+            else:
+                slow_provider = provider
 
         if not Web3Service.instance:
-            Web3Service.instance = Web3Service.__Web3Service(provider)
+            Web3Service.instance = Web3Service.__Web3Service(provider, slow_provider)
         elif provider and not isinstance(provider,
                                          Web3Service.instance.web3.providers[0].__class__):
-            Web3Service.instance = Web3Service.__Web3Service(provider)
+            Web3Service.instance = Web3Service.__Web3Service(provider, slow_provider)
         return Web3Service.instance
 
     def __getattr__(self, item):
@@ -50,9 +64,14 @@ class Web3Service(object):
         max_workers: int = settings.ETHEREUM_MAX_WORKERS
         max_batch_requests: int = settings.ETHEREUM_MAX_BATCH_REQUESTS
 
-        def __init__(self, provider):
+        def __init__(self, provider, slow_provider):
+            """
+            :param provider: Web3 Provider
+            :param slow_provider: Web3 Provider for slow operations (like filters) with bigger timeout
+            """
             self.provider = provider
             self.web3 = Web3(provider)
+            self.web3_slow = Web3(slow_provider)
             self.http_session = requests.session()
 
             # If not in the mainNet, inject Geth PoA middleware
@@ -244,6 +263,23 @@ class Web3Service(object):
                     block_number_with_logs[block['number']] = logs
 
             return block_number_with_logs
+
+        def get_logs_for_address_using_filter(self, from_block: int, to_block: int, address: str) -> List[any]:
+            """
+            Recover logs using filter for address
+            """
+            return self.web3_slow.eth.getLogs({'fromBlock': from_block,
+                                               'toBlock': to_block,
+                                               'address': address})
+
+        def get_logs_for_event_using_filter(self, from_block: int, to_block: int, event_hash: str) -> List[any]:
+            """
+            Recover logs using filter for event
+            """
+            logs_filter = {'fromBlock': from_block,
+                           'toBlock': to_block,
+                           'topics': [event_hash]}
+            return self.web3_slow.eth.getLogs(logs_filter)
 
         def _do_request(self, rpc_request):
             if isinstance(self.provider, HTTPProvider):

@@ -9,6 +9,11 @@ def remove_0x_head(address) -> str:
     return remove_0x(address)
 
 
+def normalize_address_with_0x(address) -> str:
+    address = address.hex() if isinstance(address, bytes) else address
+    return to_normalized_address(address)
+
+
 def normalize_address_without_0x(address) -> str:
     address = address.hex() if isinstance(address, bytes) else address
     return remove_0x_head(to_normalized_address(address))
