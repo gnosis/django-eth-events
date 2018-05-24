@@ -43,24 +43,24 @@ def event_listener(provider=None):
             el = EventListener(provider=provider)
             el.execute()
         except UnknownTransaction:
-            logger.exception('Unknown Transaction hash, might be a reorg')
+            logger.warning('Unknown Transaction hash, might be a reorg', exc_info=True)
         except UnknownBlock:
-            logger.exception('Cannot get block by number/hash, might be a reorg')
+            logger.warning('Cannot get block by number/hash, might be a reorg', exc_info=True)
         except UnknownBlockReorgException:
-            logger.exception('Unknown Block hash, might be a reorg')
+            logger.warning('Unknown Block hash, might be a reorg', exc_info=True)
         except Web3ConnectionException:
-            logger.exception('Web3 cannot connect to provider/s')
+            logger.warning('Web3 cannot connect to provider/s', exc_info=True)
         except Exception as err:
             # Not halting system for connection error cases
             if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED or
                                           err.errno == errno.ECONNRESET or
                                           err.errno == errno.ECONNREFUSED):
-                logger.exception('An error has occurred, errno: %d', err.errno)
+                logger.warning('An error has occurred, errno: %d', err.errno, exc_info=True)
             elif (isinstance(err, HTTPError) or
                   isinstance(err, PoolError) or
                   isinstance(err, LocationValueError) or
                   isinstance(err, RequestException)):
-                logger.exception('An error has occurred, errno: %d', err.errno)
+                logger.warning('An error has occurred, errno: %d', err.errno, exc_info=True)
             else:
                 logger.error('Halting system due to error', exc_info=True)
                 daemon = Daemon.get_solo()
