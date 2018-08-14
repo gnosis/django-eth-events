@@ -373,6 +373,7 @@ class EventListener(object):
 
         # Use filters for first sync
         if (current_block_number - daemon.block_number) > self.max_blocks_to_backup:
+            self.clean_old_blocks_backup(daemon.block_number)
             return self.execute_with_filters(daemon,
                                              min(daemon.block_number + self.blocks_to_process_with_filters,
                                                  current_block_number - self.max_blocks_to_backup)
