@@ -46,7 +46,7 @@ class SingletonListener(object):
 class EventListener(object):
     max_blocks_to_backup = settings.ETH_BACKUP_BLOCKS
     max_blocks_to_process = settings.ETH_PROCESS_BLOCKS
-    blocks_to_process_with_filters = settings.ETH_FILTER_MAX_BLOCKS
+    blocks_to_process_with_filters = settings.ETH_FILTER_PROCESS_BLOCKS
 
     def __init__(self, contract_map=None, provider=None):
         self.web3_service = Web3Service(provider=provider)
