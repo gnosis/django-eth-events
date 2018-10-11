@@ -91,11 +91,21 @@ class EventListener(object):
         :param contract_map: list of dictionaries
         :return: parsed list of dictionaries
         """
+
+        # Check no names repeated in contracts
+        names = set()
         contracts_parsed = []
         for contract in contract_map:
-            if 'NAME' not in contract:
+            name = contract.get('NAME')
+            if not name:
                 logger.error("Missing `NAME` for event listener")
                 raise ValueError
+            else:
+                if name in names:
+                    logger.error("Duplicated `NAME` %s for event listener", name)
+                    raise ValueError
+                else:
+                    names.add(name)
 
             contract_parsed = contract.copy()
             # Parse addresses (normalize and remove 0x). Throws exception if address is invalid
