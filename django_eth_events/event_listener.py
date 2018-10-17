@@ -453,7 +453,7 @@ class EventListener(object):
                 watched_addresses = contract_address_cache[contract['NAME']]
 
                 # Filter logs by relevant addresses
-                target_logs = [log for log in logs if log['address'] in watched_addresses]
+                target_logs = [log for log in logs if self.web3.toChecksumAddress(log['address']) in watched_addresses]
 
                 if target_logs:
                     logger.info('Found %d relevant logs in block %d', len(target_logs), current_block_number)
