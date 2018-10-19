@@ -16,8 +16,8 @@ from .utils import (CentralizedOracle, centralized_oracle_abi,
 
 class TestDaemonExec(TestCase):
     def setUp(self):
-        self.web3 = Web3Service(provider=EthereumTesterProvider(EthereumTester())).web3
-        self.provider = self.web3.providers[0]
+        self.provider = EthereumTesterProvider(EthereumTester())
+        self.web3 = Web3Service(provider=self.provider).web3
         self.web3.eth.defaultAccount = self.web3.eth.coinbase
 
         # Mock web3
@@ -41,6 +41,7 @@ class TestDaemonExec(TestCase):
                 'ADDRESSES': [self.centralized_oracle_factory_address[2::]]
             }
         ]
+        EventListener.instance = None
         self.listener_under_test = EventListener(contract_map=self.contracts,
                                                  provider=self.provider)
         CentralizedOracle().reset()
@@ -57,8 +58,8 @@ class TestDaemonExec(TestCase):
         self.assertEqual(0, Block.objects.all().count())
 
         # Create centralized oracle
-        tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
-            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+        tx_hash = self.centralized_oracle_factory.functions.createCentralizedOracle(
+            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG').transact(self.tx_data)
         self.assertIsNotNone(tx_hash)
         self.listener_under_test.execute()
         self.assertEqual(CentralizedOracle().length(), 1)
@@ -78,8 +79,8 @@ class TestDaemonExec(TestCase):
         self.assertEqual(2, self.web3.eth.blockNumber)
 
         # Create centralized oracle
-        tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
-            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+        tx_hash = self.centralized_oracle_factory.functions.createCentralizedOracle(
+            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG').transact(self.tx_data)
         self.assertIsNotNone(tx_hash)
         self.listener_under_test.execute()
         self.assertEqual(CentralizedOracle().length(), 1)
@@ -120,8 +121,8 @@ class TestDaemonExec(TestCase):
         self.assertEqual(0, CentralizedOracle().length())
         self.assertEqual(0, Daemon.get_solo().block_number)
         # Create centralized oracle
-        tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
-            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+        tx_hash = self.centralized_oracle_factory.functions.createCentralizedOracle(
+            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG').transact(self.tx_data)
 
         with self.assertRaises(Exception):
             # raising an exception would make the atomic transaction to fail
@@ -157,8 +158,8 @@ class TestDaemonExec(TestCase):
         self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
         self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
         self.web3.eth.sendTransaction({'from': accounts[0], 'to': accounts[1], 'value': 1000000})
-        tx_hash = self.centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
-            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+        tx_hash = self.centralized_oracle_factory.functions.createCentralizedOracle(
+            b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG').transact(self.tx_data)
 
         self.assertEqual(1, CentralizedOracle().length())
         self.assertEqual(2, Daemon.get_solo().block_number)

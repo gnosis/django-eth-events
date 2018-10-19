@@ -5,21 +5,14 @@ from web3 import HTTPProvider, IPCProvider
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..event_listener import EventListener
-from ..web3_service import Web3Service
+from ..web3_service import Web3Service, Web3ServiceProvider
 
 
 class TestSingleton(TestCase):
 
     def test_single_instance(self):
-        service1 = Web3Service()
-        service2 = Web3Service()
-        self.assertEqual(service1.web3, service2.web3)
-
-    def test_arg_rpc_provider(self):
-        http_provider = HTTPProvider('http://localhost:8545')
-
-        service1 = Web3Service()
-        service2 = Web3Service(http_provider)
+        service1 = Web3ServiceProvider()
+        service2 = Web3ServiceProvider()
         self.assertEqual(service1.web3, service2.web3)
 
     def test_arg_ipc_provider(self):
@@ -28,7 +21,7 @@ class TestSingleton(TestCase):
             testnet=True
         )
 
-        service1 = Web3Service()
+        service1 = Web3ServiceProvider()
         self.assertIsInstance(service1.web3.providers[0], HTTPProvider)
         service2 = Web3Service(ipc_provider)
         self.assertIsInstance(service2.web3.providers[0], IPCProvider)
@@ -37,7 +30,7 @@ class TestSingleton(TestCase):
     def test_eth_tester_provider(self):
         eth_tester_provider = EthereumTesterProvider(EthereumTester())
 
-        service1 = Web3Service()
+        service1 = Web3ServiceProvider()
         self.assertIsInstance(service1.web3.providers[0], HTTPProvider)
         service2 = Web3Service(eth_tester_provider)
         self.assertIsInstance(service2.web3.providers[0], EthereumTesterProvider)

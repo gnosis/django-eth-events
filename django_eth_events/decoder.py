@@ -3,7 +3,6 @@ from logging import getLogger
 
 from eth_abi import decode_abi
 from ethereum.utils import sha3
-
 from hexbytes import HexBytes
 
 from .singleton import Singleton

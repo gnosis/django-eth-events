@@ -1,7 +1,7 @@
 from .exceptions import NoBackupException, UnknownBlockReorgException
 from .models import Block
 from .utils import remove_0x_head
-from .web3_service import Web3Service
+from .web3_service import Web3Service, Web3ServiceProvider
 
 
 def check_reorg(daemon_block_number, current_block_number=None, provider=None):
@@ -15,7 +15,7 @@ def check_reorg(daemon_block_number, current_block_number=None, provider=None):
     :raise UnknownBlockReorg
     :raise NoBackup
     """
-    web3_service = Web3Service(provider=provider)
+    web3_service = Web3Service(provider=provider) if provider else Web3ServiceProvider()
     current_block_number = current_block_number if current_block_number else web3_service.get_current_block_number()
 
     if current_block_number >= daemon_block_number:
