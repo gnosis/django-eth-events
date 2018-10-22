@@ -308,5 +308,5 @@ class Web3Service:
                 "id": 1}
 
     def _chunks(self, iterable, size):
-        for i in range(len(iterable), step=size):
+        for i in range(0, len(iterable), step=size):
             yield iterable[i:i + size]
