@@ -98,7 +98,7 @@ class Decoder(Singleton):
                 data_types.append(param['type'])
 
         # decode_abi expect data in bytes format instead of str starting by 0x
-        log_data_bytes = bytes.fromhex(log['data'][2:])
+        log_data_bytes = HexBytes(log['data'])
         decoded_data = decode_abi(data_types, log_data_bytes)
 
         for param in method['inputs']:
