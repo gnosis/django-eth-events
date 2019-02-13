@@ -70,7 +70,7 @@ class Web3Service:
             if int(self.web3.net.version) == RINKEBY_CHAIN_ID:
                 self.web3.middleware_stack.inject(geth_poa_middleware, layer=0)
         # For tests using dummy connections (like IPC)
-        except (UnhandledRequest, ConnectionError, FileNotFoundError):
+        except (UnhandledRequest, ConnectionError, ConnectionRefusedError, FileNotFoundError):
             pass
 
     @property
