@@ -55,12 +55,12 @@ def event_listener(provider=None):
             if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED or
                                           err.errno == errno.ECONNRESET or
                                           err.errno == errno.ECONNREFUSED):
-                logger.warning('An error has occurred, errno: %d', err.errno, exc_info=True)
+                logger.warning('Connection problem, errno: %d', err.errno, exc_info=True)
             elif (isinstance(err, HTTPError) or
                   isinstance(err, PoolError) or
                   isinstance(err, LocationValueError) or
                   isinstance(err, RequestException)):
-                logger.warning('An error has occurred, errno: %d', err.errno, exc_info=True)
+                logger.warning('Connection problem, errno: %d', err.errno, exc_info=True)
             else:
                 logger.error('Halting system due to error', exc_info=True)
                 daemon = Daemon.get_solo()

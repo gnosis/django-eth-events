@@ -78,8 +78,8 @@ class TestCelery(TestCase):
             # Start Celery Task
             event_listener(self.provider)
             # Create centralized oracle
-            centralized_oracle_factory.transact(self.tx_data).createCentralizedOracle(
-                b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+            centralized_oracle_factory.functions.createCentralizedOracle(
+                b'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG').transact(self.tx_data)
             # Run event listener again
             event_listener(self.provider)
             # Do checks

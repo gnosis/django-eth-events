@@ -1,4 +1,3 @@
-from ethereum.utils import checksum_encode
 from json import dumps, loads
 from typing import Set
 
@@ -6,18 +5,20 @@ from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db import transaction
 from django.utils.module_loading import import_string
+from ethereum.utils import checksum_encode
 
 from .decoder import Decoder
 from .exceptions import InvalidAddressException
 from .models import Block, Daemon
 from .reorgs import check_reorg
-from .utils import (JsonBytesEncoder, normalize_address_without_0x, remove_0x_head)
-from .web3_service import Web3Service
+from .utils import (JsonBytesEncoder, normalize_address_without_0x,
+                    remove_0x_head)
+from .web3_service import Web3Service, Web3ServiceProvider
 
 logger = get_task_logger(__name__)
 
 
-class SingletonListener(object):
+class SingletonListener:
     """
     Singleton class decorator for EventListener
     """
@@ -43,13 +44,13 @@ class SingletonListener(object):
 
 
 @SingletonListener
-class EventListener(object):
+class EventListener:
     max_blocks_to_backup = settings.ETH_BACKUP_BLOCKS
     max_blocks_to_process = settings.ETH_PROCESS_BLOCKS
     blocks_to_process_with_filters = settings.ETH_FILTER_PROCESS_BLOCKS
 
     def __init__(self, contract_map=None, provider=None):
-        self.web3_service = Web3Service(provider=provider)
+        self.web3_service = Web3Service(provider=provider) if provider else Web3ServiceProvider()
         self.web3 = self.web3_service.web3  # Gets transaction and block info from ethereum
 
         if not contract_map:
@@ -453,7 +454,7 @@ class EventListener(object):
                 watched_addresses = contract_address_cache[contract['NAME']]
 
                 # Filter logs by relevant addresses
-                target_logs = [log for log in logs if log['address'] in watched_addresses]
+                target_logs = [log for log in logs if self.web3.toChecksumAddress(log['address']) in watched_addresses]
 
                 if target_logs:
                     logger.info('Found %d relevant logs in block %d', len(target_logs), current_block_number)
