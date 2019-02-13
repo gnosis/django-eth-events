@@ -5,7 +5,11 @@
 [![PyPI version](https://badge.fury.io/py/django-eth-events.svg)](https://badge.fury.io/py/django-eth-events)
 
 # django_eth_events
-A standalone Django app for decoding Ethereum events compatible with Python 2.7 and 3.x
+A standalone Django app for decoding Ethereum events compatible with Python 3.x. This app provides methods 
+and [Celery tasks](http://www.celeryproject.org/) to continuously decode events from ethereum blockchain and
+index then in a relational database. Too see an example of using this you can
+check [Gnosis TradingDB repository](https://github.com/gnosis/pm-trading-db) and
+[readthedocs documentation](https://gnosis-apollo.readthedocs.io/en/latest/pm-trading-db.html)
 
 # Setup
 If you want to install the latest stable release from PyPi:
@@ -18,7 +22,7 @@ If you want to install the latest development version from GitHub:
 
 Add django_eth_events to your INSTALLED_APPS:
 
-```
+```python
 INSTALLED_APPS = (
     ...
     'django_eth_events',
@@ -28,10 +32,10 @@ INSTALLED_APPS = (
 
 # Settings
 Provide an Ethereum _node url_. Provider will be detected depending on the protocol of the url. _http/s_, _ipc_ and
-_ws(websocket)_ providers are available.
+_ws(websocket)_ providers are available. **Recommended protocol is HTTPS.**
 For example, using _https://localhost:8545_ communication with node will use **RPC through HTTPS**
 
-```
+```python
 ETHEREUM_NODE_URL = os.environ['ETHEREUM_NODE_URL']
 ```
 
@@ -39,20 +43,20 @@ You can also provide an **IPC path** to a node running locally, which will be fa
 
 Number of concurrent threads connected to the ethereum node can be configured:
 
-```
+```python
 ETHEREUM_MAX_WORKERS = os.environ['ETHEREUM_MAX_WORKERS']
 ```
 
 # IPFS
 Provide an IPFS host and port:
 
-```
+```python
 IPFS_HOST = os.environ['IPFS_HOST']
 IPFS_PORT = os.environ['IPFS_PORT']
 ```
 
 ##### Events to listen to
-Create a new array variable in your settings file and call it ETH_EVENTS as follows:
+Create a new array `ETH_EVENTS` in your settings file and as follows:
 
 ```
 ETH_EVENTS = [
@@ -72,20 +76,18 @@ ETH_EVENTS = [
 ]
 ```
 
-Take a look at GnosisDB repository and check out the full documentation: [link](https://github.com/gnosis/gnosisdb).
+Take a look at [Gnosis TradingDB repository](https://github.com/gnosis/pm-trading-db) and check out the full documentation.
 
 # Tests
 You can launch tests using `python run_tests.py`. No additional services are required.
 
 Django tests can also be used
-```
-export DJANGO_SETTINGS_MODULE=settings.test
-export PYTHONPATH="/folder/to/project/django-eth-events"
-python django_eth_events/manage.py test
+```bash
+DJANGO_SETTINGS_MODULE=settings.test python manage.py test
 ```
 
 Coverage can be run using _coverage_ tool:
-```
+```bash
 pip install coverage
-coverage run --source=django_eth_events django_eth_events/manage.py test
+DJANGO_SETTINGS_MODULE=settings.test coverage run --source=django_eth_events manage.py test
 ```
