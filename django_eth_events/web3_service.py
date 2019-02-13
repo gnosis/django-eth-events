@@ -67,7 +67,7 @@ class Web3Service:
         # If rinkeby, inject Geth PoA middleware
         # http://web3py.readthedocs.io/en/latest/middleware.html#geth-style-proof-of-authority
         try:
-            if self.web3.net.chainId == RINKEBY_CHAIN_ID:
+            if int(self.web3.net.version) == RINKEBY_CHAIN_ID:
                 self.web3.middleware_stack.inject(geth_poa_middleware, layer=0)
         # For tests using dummy connections (like IPC)
         except (UnhandledRequest, ConnectionError, FileNotFoundError):
