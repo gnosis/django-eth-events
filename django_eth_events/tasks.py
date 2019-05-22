@@ -51,7 +51,6 @@ def event_listener(provider=None):
         except Web3ConnectionException:
             logger.warning('Web3 cannot connect to provider/s', exc_info=True)
         except Exception as err:
-            # Not halting system for connection error cases
             if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED or
                                           err.errno == errno.ECONNRESET or
                                           err.errno == errno.ECONNREFUSED):
@@ -62,9 +61,8 @@ def event_listener(provider=None):
                   isinstance(err, RequestException)):
                 logger.warning('Connection problem, errno: %d', err.errno, exc_info=True)
             else:
-                logger.error('Halting system due to error', exc_info=True)
+                logger.error('A severe error occurred', exc_info=True)
                 daemon = Daemon.get_solo()
-                daemon.set_halted()
 
                 # get last error block number database
                 last_error_block_number = daemon.last_error_block_number
@@ -72,14 +70,12 @@ def event_listener(provider=None):
                 current_block_number = daemon.block_number
                 logger.error('Daemon block number: %d, Last error block number: %d',
                              current_block_number, last_error_block_number)
+
                 if last_error_block_number < current_block_number:
                     # save block number into cache
                     daemon.last_error_block_number = current_block_number
                     daemon.last_error_date_time = timezone.now()
-                    try:
-                        send_email(traceback.format_exc())
-                    except:
-                        logger.exception("Problem sending mail")
+
                 daemon.save()
         finally:
             logger.debug('Releasing LOCK')
