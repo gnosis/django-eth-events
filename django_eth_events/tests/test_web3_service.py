@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from pathlib import Path
+
 from django.test import TestCase
 from eth_tester import EthereumTester
-from web3 import HTTPProvider, IPCProvider, WebsocketProvider
+from web3 import HTTPProvider, IPCProvider
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from ..exceptions import UnknownBlock
@@ -50,7 +52,7 @@ class TestSingleton(TestCase):
             self.assertTrue(isinstance(provider, HTTPProvider))
 
     def test_provider_ipc(self):
-        socket_path = '/tmp/socket.ipc'
+        socket_path = str(Path('/tmp/socket.ipc').expanduser().resolve())
         with self.settings(ETHEREUM_NODE_URL='ipc://' + socket_path):
             web3_service = Web3ServiceProvider()
             provider = web3_service.web3.providers[0]
