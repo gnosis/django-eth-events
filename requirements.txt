@@ -9,4 +9,4 @@ ethereum==2.3.2
 factory-boy==2.11.1
 requests==2.18.4
 urllib3==1.22
-web3[tester]==4.8.2
+web3[tester]==4.9.2
