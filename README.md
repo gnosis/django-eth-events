@@ -55,7 +55,7 @@ IPFS_HOST = os.environ['IPFS_HOST']
 IPFS_PORT = os.environ['IPFS_PORT']
 ```
 
-##### Events to listen to
+# Listening to Events
 Create a new array `ETH_EVENTS` in your settings file and as follows:
 
 ```
@@ -78,16 +78,33 @@ ETH_EVENTS = [
 
 Take a look at [Gnosis TradingDB repository](https://github.com/gnosis/pm-trading-db) and check out the full documentation.
 
-# Tests
+
+# Django-eth-events development
+The easiest way to start development on django-eth-events is to install dependencies using pip and a virtualenv, python3.6 is
+required:
+
+```
+virtualenv -p python3.6 venv
+source venv/bin/activate
+pip install -r requirements
+```
+
+## Tests
 You can launch tests using `python run_tests.py`. No additional services are required.
 
 Django tests can also be used
 ```bash
-DJANGO_SETTINGS_MODULE=settings.test python manage.py test
+DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test
 ```
 
 Coverage can be run using _coverage_ tool:
 ```bash
 pip install coverage
-DJANGO_SETTINGS_MODULE=settings.test coverage run --source=django_eth_events manage.py test
+DJANGO_SETTINGS_MODULE=config.settings.test coverage run --source=django_eth_events manage.py test
 ```
+
+### Run specific test cases
+
+```DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test django_eth_events.tests.test_file```
+
+More information at [https://docs.djangoproject.com/en/2.2/topics/testing/overview/#running-tests](https://docs.djangoproject.com/en/2.2/topics/testing/overview/#running-tests).

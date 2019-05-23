@@ -17,7 +17,7 @@ class TestSingleton(TestCase):
 
     def test_arg_ipc_provider(self):
         ipc_provider = IPCProvider(
-            ipc_path='',
+            ipc_path=None,
             testnet=True
         )
 
@@ -38,7 +38,7 @@ class TestSingleton(TestCase):
 
     def test_event_listener_singleton(self):
         ipc_provider = IPCProvider(
-            ipc_path='',
+            ipc_path=None,
             testnet=True
         )
 

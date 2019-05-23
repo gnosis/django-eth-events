@@ -376,8 +376,6 @@ class EventListener:
         contract_address_cache = {}
 
         daemon = Daemon.get_solo()
-        if not daemon.is_executing():
-            return
 
         self.clean_useless_blocks_backup(daemon.block_number)
         current_block_number = self.web3_service.get_current_block_number()

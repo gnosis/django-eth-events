@@ -84,7 +84,6 @@ class TestCelery(TestCase):
             event_listener(self.provider)
             # Do checks
             daemon = Daemon.get_solo()
-            self.assertTrue(daemon.is_executing())
             self.assertEqual(daemon.block_number, daemon_factory.block_number + 2)
             self.assertEqual(Block.objects.all().count(), n_blocks + 2)
             self.assertFalse(daemon.listener_lock)
@@ -95,7 +94,6 @@ class TestCelery(TestCase):
             event_listener(self.provider)
             # Do checks
             daemon = Daemon.get_solo()
-            self.assertTrue(daemon.is_executing())
             self.assertEqual(daemon.block_number, 0)
             self.assertEqual(Block.objects.all().count(), 0)
             self.assertFalse(daemon.listener_lock)
