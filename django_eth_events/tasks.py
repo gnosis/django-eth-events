@@ -51,32 +51,22 @@ def event_listener(provider=None):
         except Web3ConnectionException:
             logger.warning('Web3 cannot connect to provider/s', exc_info=True)
         except Exception as err:
-            if hasattr(err, 'errno') and (err.errno == errno.ECONNABORTED or
-                                          err.errno == errno.ECONNRESET or
-                                          err.errno == errno.ECONNREFUSED):
-                logger.warning('Connection problem, errno: %d', err.errno, exc_info=True)
-            elif (isinstance(err, HTTPError) or
-                  isinstance(err, PoolError) or
-                  isinstance(err, LocationValueError) or
-                  isinstance(err, RequestException)):
-                logger.warning('Connection problem, errno: %d', err.errno, exc_info=True)
-            else:
-                logger.error('A severe error occurred', exc_info=True)
-                daemon = Daemon.get_solo()
+            logger.error('An error occurred', exc_info=True)
+            daemon = Daemon.get_solo()
 
-                # get last error block number database
-                last_error_block_number = daemon.last_error_block_number
-                # get current block number from database
-                current_block_number = daemon.block_number
-                logger.error('Daemon block number: %d, Last error block number: %d',
-                             current_block_number, last_error_block_number)
+            # get last error block number database
+            last_error_block_number = daemon.last_error_block_number
+            # get current block number from database
+            current_block_number = daemon.block_number
+            logger.error('Daemon block number: %d, Last error block number: %d',
+                         current_block_number, last_error_block_number)
 
-                if last_error_block_number < current_block_number:
-                    # save block number into cache
-                    daemon.last_error_block_number = current_block_number
-                    daemon.last_error_date_time = timezone.now()
+            if last_error_block_number < current_block_number:
+                # save block number into cache
+                daemon.last_error_block_number = current_block_number
+                daemon.last_error_date_time = timezone.now()
 
-                daemon.save()
+            daemon.save()
         finally:
             logger.debug('Releasing LOCK')
             with transaction.atomic():
