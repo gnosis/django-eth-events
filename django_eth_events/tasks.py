@@ -1,4 +1,3 @@
-import errno
 import traceback
 from datetime import timedelta
 
@@ -7,13 +6,12 @@ from celery.utils.log import get_task_logger
 from django.core.mail import mail_admins
 from django.db import transaction
 from django.utils import timezone
-from requests.exceptions import RequestException
-from urllib3.exceptions import HTTPError, LocationValueError, PoolError
 
 from .event_listener import EventListener
 from .exceptions import (UnknownBlock, UnknownBlockReorgException,
                          UnknownTransaction, Web3ConnectionException)
 from .models import Daemon
+from .utils import is_network_error
 
 logger = get_task_logger(__name__)
 
@@ -51,22 +49,25 @@ def event_listener(provider=None):
         except Web3ConnectionException:
             logger.warning('Web3 cannot connect to provider/s', exc_info=True)
         except Exception as err:
-            logger.error('An error occurred', exc_info=True)
-            daemon = Daemon.get_solo()
+            if is_network_error(err):
+                logger.warning('Network error', exc_info=True)
+            else:
+                logger.error('An unhandled error occurred', exc_info=True)
+                daemon = Daemon.get_solo()
 
-            # get last error block number database
-            last_error_block_number = daemon.last_error_block_number
-            # get current block number from database
-            current_block_number = daemon.block_number
-            logger.error('Daemon block number: %d, Last error block number: %d',
-                         current_block_number, last_error_block_number)
+                # get last error block number database
+                last_error_block_number = daemon.last_error_block_number
+                # get current block number from database
+                current_block_number = daemon.block_number
+                logger.error('Daemon block number: %d, Last error block number: %d',
+                             current_block_number, last_error_block_number)
 
-            if last_error_block_number < current_block_number:
-                # save block number into cache
-                daemon.last_error_block_number = current_block_number
-                daemon.last_error_date_time = timezone.now()
+                if last_error_block_number < current_block_number:
+                    # save block number into cache
+                    daemon.last_error_block_number = current_block_number
+                    daemon.last_error_date_time = timezone.now()
 
-            daemon.save()
+                daemon.save()
         finally:
             logger.debug('Releasing LOCK')
             with transaction.atomic():
