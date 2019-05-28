@@ -104,6 +104,7 @@ class TestDaemon(TestCase):
             {
                 'address': normalize_address_without_0x(factory_address),
                 'name': 'OwnersInit',
+                'transaction_hash': logs[0]['transactionHash'].hex()[2:],
                 'params': [
                     {
                         'name': 'owners',
@@ -119,6 +120,7 @@ class TestDaemon(TestCase):
             {
                 'address': normalize_address_without_0x(factory_address),
                 'name': 'ContractInstantiation',
+                'transaction_hash': logs[1]['transactionHash'].hex()[2:],
                 'params': [
                     {
                         'name': 'sender',
