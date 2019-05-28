@@ -8,7 +8,7 @@ class AbstractAddressesGetter(SingletonABC):
     """Abstract AddressesGetter class."""
 
     @abstractmethod
-    def get_addresses(self) -> List: pass
+    def get_addresses(self) -> List[str]: pass
 
     @abstractmethod
     def __contains__(self, address: str) -> bool: pass
