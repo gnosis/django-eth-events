@@ -95,7 +95,7 @@ class TestDecoder(TestCase):
         }]
         decoded = self.decoder.decode_logs(logs_with_hex_tx_hash)
         # Test decoded transaction_hash is without `0x` prefix
-        self.assertEquals(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex()[2:])
+        self.assertEqual(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex()[2:])
         self.assertFalse(decoded[0]['transaction_hash'].startswith('0x'))
 
         logs_with_hex_tx_hash = [{
@@ -104,7 +104,7 @@ class TestDecoder(TestCase):
         }]
         decoded = self.decoder.decode_logs(logs_with_hex_tx_hash)
         # Test decoded transaction_hash is without `0x` prefix
-        self.assertEquals(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'])
+        self.assertEqual(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'])
         self.assertFalse(decoded[0]['transaction_hash'].startswith('0x'))
 
         logs_with_hex_tx_hash = [{
@@ -113,7 +113,7 @@ class TestDecoder(TestCase):
         }]
         decoded = self.decoder.decode_logs(logs_with_hex_tx_hash)
         # Test decoded transaction_hash is without `0x` prefix
-        self.assertEquals(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex())
+        self.assertEqual(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex())
         self.assertFalse(decoded[0]['transaction_hash'].startswith('0x'))
 
         logs_with_hex_tx_hash = [{
@@ -122,7 +122,7 @@ class TestDecoder(TestCase):
         }]
         decoded = self.decoder.decode_logs(logs_with_hex_tx_hash)
         # Test decoded transaction_hash is without `0x` prefix
-        self.assertEquals(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex())
+        self.assertEqual(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex())
         self.assertFalse(decoded[0]['transaction_hash'].startswith('0x'))
 
     def test_validation_errors(self):
@@ -160,6 +160,14 @@ class TestDecoder(TestCase):
             {
                 **base_log,
                 'transactionHash': '0x'
+            }
+        ]
+        self.assertRaises(ValueError, self.decoder.decode_logs, logs_with_invalid_tx_hash)
+
+        logs_with_invalid_tx_hash = [
+            {
+                **base_log,
+                'transactionHash': '0x0123456789'
             }
         ]
         self.assertRaises(ValueError, self.decoder.decode_logs, logs_with_invalid_tx_hash)

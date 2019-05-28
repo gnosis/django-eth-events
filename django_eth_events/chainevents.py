@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
-from .singleton import SingletonABCMeta
+from .singleton import SingletonABC
 
 
-class AbstractAddressesGetter(metaclass=SingletonABCMeta):
+class AbstractAddressesGetter(SingletonABC):
     """Abstract AddressesGetter class."""
 
     @abstractmethod
