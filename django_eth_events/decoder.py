@@ -150,8 +150,12 @@ class Decoder(Singleton):
         if not tx_hash:
             raise ValueError
 
-        if isinstance(tx_hash, (bytes, HexBytes)):
+        if isinstance(tx_hash, bytes):
             tx_hash = tx_hash.hex()
+
+        tx_hash = tx_hash.strip()  # Trim spaces
+        if tx_hash.startswith('0x'):  # Remove 0x prefix
+            tx_hash = tx_hash[2:]
 
         if len(tx_hash) < 64:
             raise ValueError

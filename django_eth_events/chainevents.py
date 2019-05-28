@@ -1,5 +1,5 @@
-from abc import ABCMeta, abstractmethod
-from typing import Optional, List
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional
 
 from .singleton import SingletonABCMeta
 
@@ -14,11 +14,11 @@ class AbstractAddressesGetter(metaclass=SingletonABCMeta):
     def __contains__(self, address: str) -> bool: pass
 
 
-class AbstractEventReceiver(metaclass=ABCMeta):
+class AbstractEventReceiver(ABC):
     """Abstract EventReceiver class."""
 
     @abstractmethod
-    def save(self, decoded_event: dict, block_info: dict) -> Optional[object]:
+    def save(self, decoded_event: Dict, block_info: Dict) -> Optional[object]:
         """
         Let the inheriting EventReceiver save data. The way data is handled is up to the EventReceiver.
         :param decoded_event: See django_eth_events.decoder.Decoder
@@ -30,7 +30,7 @@ class AbstractEventReceiver(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def rollback(self, decoded_event: dict, block_info: dict) -> Optional[object]:
+    def rollback(self, decoded_event: Dict, block_info: Dict) -> Optional[object]:
         """
         Let the inheriting EventReceiver undo saved data. The way data is handled is up to the EventReceiver.
         :param decoded_event: See django_eth_events.decoder.Decoder

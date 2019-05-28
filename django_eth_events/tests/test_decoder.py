@@ -59,7 +59,7 @@ class TestDecoder(TestCase):
                 {
                     'address': 'a6d9c5f7d4de3cef51ad3b7235d79ccc95114de5',
                     'name': 'ContractInstantiation',
-                    'transaction_hash': logs[0]['transactionHash'],
+                    'transaction_hash': logs[0]['transactionHash'][2:], # without `0x`
                     'params': [
                         {
                             'name': 'sender',
@@ -121,3 +121,43 @@ class TestDecoder(TestCase):
             }
         ]
         self.assertRaises(ValueError, self.decoder.decode_logs, logs_with_invalid_tx_hash)
+
+        logs_with_valid_tx_hash = [
+            {
+                **base_log,
+                'transactionHash': HexBytes('0x54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa')
+            }
+        ]
+        self.assertIsNotNone(self.decoder.decode_logs(logs_with_valid_tx_hash))
+
+        logs_with_valid_tx_hash = [
+            {
+                **base_log,
+                'transactionHash': HexBytes('54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa')
+            }
+        ]
+        self.assertIsNotNone(self.decoder.decode_logs(logs_with_valid_tx_hash))
+
+        logs_with_valid_tx_hash = [
+            {
+                **base_log,
+                'transactionHash': HexBytes('0x54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa').hex()
+            }
+        ]
+        self.assertIsNotNone(self.decoder.decode_logs(logs_with_valid_tx_hash))
+
+        logs_with_valid_tx_hash = [
+            {
+                **base_log,
+                'transactionHash': bytes(HexBytes('0x54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa')).hex()
+            }
+        ]
+        self.assertIsNotNone(self.decoder.decode_logs(logs_with_valid_tx_hash))
+
+        logs_with_valid_tx_hash = [
+            {
+                **base_log,
+                'transactionHash': bytes(HexBytes('54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa')).hex()
+            }
+        ]
+        self.assertIsNotNone(self.decoder.decode_logs(logs_with_valid_tx_hash))
