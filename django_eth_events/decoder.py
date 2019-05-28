@@ -125,20 +125,38 @@ class Decoder(Singleton):
         decoded_event = {
             'params': decoded_params,
             'name': method['name'],
-            'address': self.decode_address(log['address'])
+            'address': self.decode_address(log['address']),
+            'transaction_hash': self.decode_transaction(log['transactionHash'])
         }
 
         return decoded_event
 
     @staticmethod
     def decode_address(address):
+        if not address:
+            raise ValueError
+
         if isinstance(address, bytes):
             address = address.hex()
+
         # Address length must be 40 (42 with 0x), but usually it's packed on 32 bits (length of 66 with 0x)
         if len(address) == 66:
             address = address[26:]
 
         return normalize_address_without_0x(address)
+
+    @staticmethod
+    def decode_transaction(tx_hash):
+        if not tx_hash:
+            raise ValueError
+
+        if isinstance(tx_hash, (bytes, HexBytes)):
+            tx_hash = tx_hash.hex()
+
+        if len(tx_hash) < 64:
+            raise ValueError
+
+        return tx_hash
 
     def decode_logs(self, logs):
         """

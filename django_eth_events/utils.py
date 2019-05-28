@@ -1,5 +1,6 @@
 import errno
 
+from hexbytes import HexBytes
 from json import JSONEncoder
 from requests.exceptions import RequestException
 from urllib3.exceptions import HTTPError
@@ -39,8 +40,11 @@ def normalize_address_without_0x(address) -> str:
 
 
 class JsonBytesEncoder(JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, bytes):
-                return obj.decode('ascii')
-            # Let the base class default method raise the TypeError
-            return JSONEncoder.default(self, obj)
+    def default(self, obj):
+        if isinstance(obj, HexBytes):
+            return obj.hex()
+        if isinstance(obj, bytes):
+            return obj.decode('ascii')
+
+        # Let the base class default method raise the TypeError
+        return JSONEncoder.default(self, obj)
