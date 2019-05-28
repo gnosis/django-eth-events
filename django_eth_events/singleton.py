@@ -1,4 +1,4 @@
-from abc import ABCMeta
+from abc import ABC
 
 
 class Singleton(object):
@@ -13,7 +13,7 @@ class Singleton(object):
         return cls._instance
 
 
-class SingletonABCMeta(ABCMeta):
+class SingletonABC(ABC):
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
