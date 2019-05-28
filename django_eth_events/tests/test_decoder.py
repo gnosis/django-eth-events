@@ -75,6 +75,56 @@ class TestDecoder(TestCase):
             decoded
         )
 
+    def test_decode_transaction_hash(self):
+        self.decoder.add_abi(self.test_abi)
+
+        base_logs = [
+          {
+            'address': '0xa6d9c5f7d4de3cef51ad3b7235d79ccc95114de5',
+            'data': u"0x00000000000000000000000065039084cc6f4773291a6ed7dcf5bc3a2e894ff300000000000000000000000017e054b16ca658789c927c854976450adbda7df0",
+            'transactionHash': '0x54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa',
+            'topics': [
+                HexBytes('0x4fb057ad4a26ed17a57957fa69c306f11987596069b89521c511fc9a894e6161')
+            ]
+          }
+        ]
+
+        logs_with_hex_tx_hash = [{
+            **base_logs[0],
+            'transactionHash': HexBytes('0x54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa')
+        }]
+        decoded = self.decoder.decode_logs(logs_with_hex_tx_hash)
+        # Test decoded transaction_hash is without `0x` prefix
+        self.assertEquals(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex()[2:])
+        self.assertFalse(decoded[0]['transaction_hash'].startswith('0x'))
+
+        logs_with_hex_tx_hash = [{
+            **base_logs[0],
+            'transactionHash': bytes(HexBytes('54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa')).hex()
+        }]
+        decoded = self.decoder.decode_logs(logs_with_hex_tx_hash)
+        # Test decoded transaction_hash is without `0x` prefix
+        self.assertEquals(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'])
+        self.assertFalse(decoded[0]['transaction_hash'].startswith('0x'))
+
+        logs_with_hex_tx_hash = [{
+            **base_logs[0],
+            'transactionHash': bytes(HexBytes('54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa'))
+        }]
+        decoded = self.decoder.decode_logs(logs_with_hex_tx_hash)
+        # Test decoded transaction_hash is without `0x` prefix
+        self.assertEquals(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex())
+        self.assertFalse(decoded[0]['transaction_hash'].startswith('0x'))
+
+        logs_with_hex_tx_hash = [{
+            **base_logs[0],
+            'transactionHash': bytes(HexBytes('0x54041b3ce0976ee17212100f42b3793fa4ee5f869a6d107249a75caa5fc1b8aa'))
+        }]
+        decoded = self.decoder.decode_logs(logs_with_hex_tx_hash)
+        # Test decoded transaction_hash is without `0x` prefix
+        self.assertEquals(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex())
+        self.assertFalse(decoded[0]['transaction_hash'].startswith('0x'))
+
     def test_validation_errors(self):
         self.decoder.add_abi(self.test_abi)
         # Create base not decoded log, which contains camelcase `transactionHash`
