@@ -41,8 +41,10 @@ def normalize_address_without_0x(address) -> str:
 
 class JsonBytesEncoder(JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, bytes):
-            return '0x' + obj.hex()
+        if isinstance(obj, HexBytes):
+            return obj.hex()
+        elif isinstance(obj, bytes):
+            return obj.decode()
 
         # Let the base class default method raise the TypeError
         return JSONEncoder.default(self, obj)
