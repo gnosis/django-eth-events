@@ -68,6 +68,7 @@ class TestUtils(TestCase):
         self.assertFalse(is_network_error(w3_conn_error))
 
     def test_json_encoder(self):
+        base_address = 'b58d5491d17ebf46e9db7f18cea7c556ae80d53B'
         ipfs_hash_string = 'Qme4GBhwNJharbu83iNEsd5WnUhQYM1rBAgCgsSuFMdjcS'
         ipfs_hash_bytes = ipfs_hash_string.encode()  # b'...'
 
@@ -81,9 +82,14 @@ class TestUtils(TestCase):
         encoded_json = loads(dumps(json, cls=JsonBytesEncoder))
         self.assertEqual(ipfs_hash_string, encoded_json['ipfs_hash'])
 
-        hex_bytes_address = HexBytes('b58d5491d17ebf46e9db7f18cea7c556ae80d53B')
+        hex_bytes_address = HexBytes(base_address)
         json = {'address': hex_bytes_address}
         encoded_json = loads(dumps(json, cls=JsonBytesEncoder))
-        self.assertEqual(hex_bytes_address.hex(), encoded_json['address'])
+        self.assertEqual('0x' + hex_bytes_address.hex(), encoded_json['address'])
+
+        bytes_address = bytes.fromhex(base_address)
+        json = {'address': bytes_address}
+        encoded_json = loads(dumps(json, cls=JsonBytesEncoder))
+        self.assertEqual('0x' + bytes_address.hex(), encoded_json['address'])
 
 
