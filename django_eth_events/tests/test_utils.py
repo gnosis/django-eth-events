@@ -85,7 +85,7 @@ class TestUtils(TestCase):
         hex_bytes_address = HexBytes(base_address)
         json = {'address': hex_bytes_address}
         encoded_json = loads(dumps(json, cls=JsonBytesEncoder))
-        self.assertEqual('0x' + hex_bytes_address.hex(), encoded_json['address'])
+        self.assertEqual(hex_bytes_address.hex(), encoded_json['address'])
 
         bytes_address = bytes.fromhex(base_address)
         json = {'address': bytes_address}

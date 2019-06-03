@@ -45,7 +45,7 @@ class JsonBytesEncoder(JSONEncoder):
             try:
                 return obj.decode()
             except UnicodeDecodeError:
-                return '0x' + obj.hex()
+                return HexBytes(obj).hex()
 
         # Let the base class default method raise the TypeError
         return super().default(self, obj)
