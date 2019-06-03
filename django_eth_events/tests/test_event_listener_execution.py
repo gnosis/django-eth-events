@@ -14,7 +14,7 @@ from .utils import (CentralizedOracle, centralized_oracle_abi,
                     centralized_oracle_bytecode)
 
 
-class TestDaemonExec(TestCase):
+class TestEventListenerExecution(TestCase):
     def setUp(self):
         self.provider = EthereumTesterProvider(EthereumTester())
         self.web3 = Web3Service(provider=self.provider).web3
@@ -105,6 +105,44 @@ class TestDaemonExec(TestCase):
         self.assertEqual(CentralizedOracle().length(), 0)
         self.assertEqual(3, Daemon.get_solo().block_number)
         self.assertEqual(3, Block.objects.all().count())
+
+    def test_multiple_contract_addresses(self):
+        # create oracle factories
+        centralized_contract_factory = self.web3.eth.contract(abi=centralized_oracle_abi,
+                                                              bytecode=centralized_oracle_bytecode)
+
+        tx_one_hash = centralized_contract_factory.constructor().transact()
+        centralized_oracle_factory_one_address = self.web3.eth.getTransactionReceipt(tx_one_hash).get('contractAddress')
+        centralized_oracle_factory_one = self.web3.eth.contract(centralized_oracle_factory_one_address,
+                                                                abi=centralized_oracle_abi)
+
+        tx_two_hash = centralized_contract_factory.constructor().transact()
+        centralized_oracle_factory_two_address = self.web3.eth.getTransactionReceipt(tx_two_hash).get('contractAddress')
+        centralized_oracle_factory_two = self.web3.eth.contract(centralized_oracle_factory_two_address,
+                                                                abi=centralized_oracle_abi)
+
+        contracts = [
+            {
+                'NAME': 'Centralized Oracle Factory',
+                'EVENT_ABI': centralized_oracle_abi,
+                'EVENT_DATA_RECEIVER': 'django_eth_events.tests.utils.CentralizedOraclesReceiver',
+                'ADDRESSES': [centralized_oracle_factory_one_address[2::], centralized_oracle_factory_two_address[2::]]
+            }
+        ]
+
+        ipfs_hash_bytes = 'Qme4GBhwNJharbu83iNEsd5WnUhQYM1rBAgCgsSuFMdjcS'.encode()
+
+        # Create centralized oracles
+        centralized_oracle_factory_one.functions.createCentralizedOracle(ipfs_hash_bytes).transact()
+        centralized_oracle_factory_two.functions.createCentralizedOracle(ipfs_hash_bytes).transact()
+
+        self.assertEqual(CentralizedOracle().length(), 0)
+
+        EventListener.instance = None
+        event_listener = EventListener(contract_map=contracts, provider=self.provider)
+        event_listener.execute()
+
+        self.assertEqual(CentralizedOracle().length(), 2)
 
     def test_atomic_transaction(self):
         contracts = [
