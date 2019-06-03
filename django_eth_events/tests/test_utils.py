@@ -2,12 +2,13 @@ import errno
 from django.test import TestCase
 from hexbytes import HexBytes
 from urllib3.exceptions import HTTPError, LocationValueError, PoolError
+from json import dumps, loads
 
-from ..utils import normalize_address_without_0x, remove_0x_head, is_network_error
+from ..utils import normalize_address_without_0x, remove_0x_head, is_network_error, JsonBytesEncoder
 from ..exceptions import Web3ConnectionException
 
 
-class TestSingleton(TestCase):
+class TestUtils(TestCase):
 
     def test_remove_0x_head(self):
         self.assertEqual('b58d5491D17ebF46E9DB7F18CeA7C556AE80d53B',
@@ -65,3 +66,30 @@ class TestSingleton(TestCase):
 
         setattr(w3_conn_error, 'errno', errno.EPERM)
         self.assertFalse(is_network_error(w3_conn_error))
+
+    def test_json_encoder(self):
+        base_address = 'b58d5491d17ebf46e9db7f18cea7c556ae80d53B'
+        ipfs_hash_string = 'Qme4GBhwNJharbu83iNEsd5WnUhQYM1rBAgCgsSuFMdjcS'
+        ipfs_hash_bytes = ipfs_hash_string.encode()  # b'...'
+
+        json = {'ipfs_hash': ipfs_hash_bytes}
+        # Simulate string encoding and convert back to dict
+        encoded_json = loads(dumps(json, cls=JsonBytesEncoder))
+        self.assertEqual(ipfs_hash_bytes.decode(), encoded_json['ipfs_hash'])
+
+        json = {'ipfs_hash': ipfs_hash_string}
+        # Simulate string encoding and convert back to dict
+        encoded_json = loads(dumps(json, cls=JsonBytesEncoder))
+        self.assertEqual(ipfs_hash_string, encoded_json['ipfs_hash'])
+
+        hex_bytes_address = HexBytes(base_address)
+        json = {'address': hex_bytes_address}
+        encoded_json = loads(dumps(json, cls=JsonBytesEncoder))
+        self.assertEqual(hex_bytes_address.hex(), encoded_json['address'])
+
+        bytes_address = bytes.fromhex(base_address)
+        json = {'address': bytes_address}
+        encoded_json = loads(dumps(json, cls=JsonBytesEncoder))
+        self.assertEqual('0x' + bytes_address.hex(), encoded_json['address'])
+
+

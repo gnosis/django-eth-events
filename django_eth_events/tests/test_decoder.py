@@ -124,6 +124,7 @@ class TestDecoder(TestCase):
         # Test decoded transaction_hash is without `0x` prefix
         self.assertEqual(decoded[0]['transaction_hash'], logs_with_hex_tx_hash[0]['transactionHash'].hex())
         self.assertFalse(decoded[0]['transaction_hash'].startswith('0x'))
+        self.assertIsInstance(decoded[0]['transaction_hash'], str)
 
     def test_validation_errors(self):
         self.decoder.add_abi(self.test_abi)
